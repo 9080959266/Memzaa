@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const order_controller_js_1 = require("../controllers/order.controller.js");
+const auth_js_1 = require("../middleware/auth.js");
+const roles_js_1 = require("../middleware/roles.js");
+const router = (0, express_1.Router)();
+router.post('/', auth_js_1.authenticateJWT, order_controller_js_1.createOrder);
+router.get('/my-orders', auth_js_1.authenticateJWT, order_controller_js_1.getMyOrders);
+router.get('/admin-all', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin', 'shop_owner'), order_controller_js_1.getAllOrdersAdmin);
+router.get('/:id', auth_js_1.authenticateJWT, order_controller_js_1.getOrderById);
+router.put('/:id/status', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner', 'admin'), order_controller_js_1.updateOrderStatus);
+exports.default = router;

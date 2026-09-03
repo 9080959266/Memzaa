@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const booking_controller_js_1 = require("../controllers/booking.controller.js");
+const auth_js_1 = require("../middleware/auth.js");
+const roles_js_1 = require("../middleware/roles.js");
+const router = (0, express_1.Router)();
+router.post('/', auth_js_1.authenticateJWT, booking_controller_js_1.createBooking);
+router.get('/my-bookings', auth_js_1.authenticateJWT, booking_controller_js_1.getMyBookings);
+router.get('/studio-bookings', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner'), booking_controller_js_1.getStudioBookings);
+router.get('/admin-all', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), booking_controller_js_1.getAllBookingsAdmin);
+router.put('/:id/status', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner', 'admin'), booking_controller_js_1.updateBookingStatus);
+exports.default = router;

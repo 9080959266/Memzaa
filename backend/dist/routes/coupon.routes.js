@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const coupon_controller_js_1 = require("../controllers/coupon.controller.js");
+const auth_js_1 = require("../middleware/auth.js");
+const roles_js_1 = require("../middleware/roles.js");
+const router = (0, express_1.Router)();
+router.get('/active', coupon_controller_js_1.getActiveCoupons);
+router.post('/validate', coupon_controller_js_1.validateCoupon);
+router.get('/admin-all', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), coupon_controller_js_1.getAllCouponsAdmin);
+router.post('/', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), coupon_controller_js_1.createCoupon);
+exports.default = router;

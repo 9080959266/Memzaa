@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const studio_controller_js_1 = require("../controllers/studio.controller.js");
+const auth_js_1 = require("../middleware/auth.js");
+const roles_js_1 = require("../middleware/roles.js");
+const router = (0, express_1.Router)();
+router.get('/', studio_controller_js_1.getAllStudios);
+router.get('/compare', studio_controller_js_1.compareStudios);
+router.get('/my-studio', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner'), studio_controller_js_1.getMyStudio);
+router.put('/my-studio', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner'), studio_controller_js_1.updateStudio);
+router.put('/:id/moderate', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), studio_controller_js_1.adminApproveStudio);
+router.get('/:id', studio_controller_js_1.getStudioById);
+exports.default = router;

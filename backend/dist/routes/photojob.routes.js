@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const photojob_controller_js_1 = require("../controllers/photojob.controller.js");
+const auth_js_1 = require("../middleware/auth.js");
+const roles_js_1 = require("../middleware/roles.js");
+const router = (0, express_1.Router)();
+router.get('/kanban', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner', 'admin'), photojob_controller_js_1.getStudioKanbanJobs);
+router.put('/:id/stage', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner', 'admin'), photojob_controller_js_1.updateJobStage);
+router.post('/:id/upload-photos', auth_js_1.authenticateJWT, photojob_controller_js_1.uploadJobPhotos);
+router.post('/:id/select-photos', auth_js_1.authenticateJWT, photojob_controller_js_1.customerSelectPhotos);
+router.put('/:id/qc', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner', 'admin'), photojob_controller_js_1.updateQCChecklist);
+exports.default = router;

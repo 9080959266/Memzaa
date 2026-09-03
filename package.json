@@ -1,0 +1,14 @@
+{
+  "name": "memora-platform",
+  "version": "1.0.0",
+  "description": "MEMORA - Photo Studio Booking and Photo-Products E-Commerce Platform",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:mobile": "cd mobile && npm start",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "seed": "cd backend && npm run seed"
+  },
+  "author": "MEMORA Team",
+  "license": "MIT"
+}

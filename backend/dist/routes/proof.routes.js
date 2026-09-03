@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const proof_controller_js_1 = require("../controllers/proof.controller.js");
+const auth_js_1 = require("../middleware/auth.js");
+const roles_js_1 = require("../middleware/roles.js");
+const router = (0, express_1.Router)();
+router.get('/my-proofs', auth_js_1.authenticateJWT, proof_controller_js_1.getMyProofs);
+router.get('/studio-proofs', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner', 'admin'), proof_controller_js_1.getStudioProofs);
+router.post('/', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner', 'admin'), proof_controller_js_1.createProof);
+router.put('/:id/review', auth_js_1.authenticateJWT, proof_controller_js_1.reviewProof);
+exports.default = router;
