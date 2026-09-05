@@ -1,17 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Layers, ShoppingBag, Clock, Camera } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
+import { Home, Layers, Camera, Clock, User } from 'lucide-react';
 
 export const MobileNav: React.FC = () => {
-  const { cartCount } = useCart();
-
   const navItems = [
     { name: 'Home', path: '/', icon: Home },
     { name: 'Categories', path: '/categories', icon: Layers },
-    { name: 'Cart', path: '/cart', icon: ShoppingBag, badge: cartCount },
-    { name: 'My Orders', path: '/orders', icon: Clock },
     { name: 'Photoshoot', path: '/bookings', icon: Camera },
+    { name: 'My Orders', path: '/orders', icon: Clock },
+    { name: 'Profile', path: '/profile', icon: User },
   ];
 
   return (
@@ -32,15 +29,7 @@ export const MobileNav: React.FC = () => {
                 }`
               }
             >
-              <div className="relative">
-                <Icon className="w-5 h-5" />
-
-                {item.badge !== undefined && item.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-amber-500 text-slate-950 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
-                    {item.badge}
-                  </span>
-                )}
-              </div>
+              <Icon className="w-5 h-5" />
 
               <span className="text-[10px] mt-1 tracking-tight">
                 {item.name}
