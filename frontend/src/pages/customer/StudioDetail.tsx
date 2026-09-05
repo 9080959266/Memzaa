@@ -21,6 +21,7 @@ import api from '../../api/client';
 import { IStudio, IPackage, IReview } from '../../types';
 import { RatingStars } from '../../components/common/RatingStars';
 import { BookingModal } from '../../components/customer/BookingModal';
+import { ReviewForm } from '../../components/customer/ReviewForm';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
