@@ -19,37 +19,55 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<IUser | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('memora_token'));
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem('memora_token') || localStorage.getItem('token')
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Fetch current user details on mount
   useEffect(() => {
     const fetchMe = async () => {
-      if (!token) {
+      const savedToken =
+        localStorage.getItem('memora_token') || localStorage.getItem('token');
+
+      if (!savedToken) {
         setIsLoading(false);
         return;
       }
+
+      setToken(savedToken);
+
       try {
         const res = await api.get('/auth/me');
-        if (res.data.success) {
+
+        if (res.data?.success && res.data?.user) {
           setUser(res.data.user);
         } else {
-          logout();
+          // Only clear session when backend explicitly says unauthorized.
+          setUser(null);
         }
-      } catch {
-        logout();
+      } catch (error: any) {
+        if (error?.response?.status === 401) {
+          localStorage.removeItem('memora_token');
+          localStorage.removeItem('token');
+          setToken(null);
+          setUser(null);
+        }
+        // Do not clear a valid local session for temporary 404/500/network errors.
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchMe();
-  }, [token]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
-    if (res.data.success) {
+
+    if (res.data?.success && res.data?.token) {
       localStorage.setItem('memora_token', res.data.token);
+      localStorage.setItem('token', res.data.token);
+
       setToken(res.data.token);
       setUser(res.data.user);
     }
@@ -57,8 +75,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const register = async (data: any) => {
     const res = await api.post('/auth/register', data);
-    if (res.data.success) {
+
+    if (res.data?.success && res.data?.token) {
       localStorage.setItem('memora_token', res.data.token);
+      localStorage.setItem('token', res.data.token);
+
       setToken(res.data.token);
       setUser(res.data.user);
     }
@@ -66,8 +87,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const googleLogin = async (data: any) => {
     const res = await api.post('/auth/google', data);
-    if (res.data.success) {
+
+    if (res.data?.success && res.data?.token) {
       localStorage.setItem('memora_token', res.data.token);
+      localStorage.setItem('token', res.data.token);
+
       setToken(res.data.token);
       setUser(res.data.user);
     }
@@ -75,13 +99,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     localStorage.removeItem('memora_token');
+    localStorage.removeItem('token');
     setToken(null);
     setUser(null);
   };
 
   const updateProfile = async (data: any) => {
     const res = await api.put('/auth/profile', data);
-    if (res.data.success) {
+
+    if (res.data?.success) {
       setUser(res.data.user);
     }
   };
@@ -106,7 +132,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       value={{
         user,
         token,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && !!token,
         isLoading,
         login,
         register,
@@ -123,8 +149,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
+
   return context;
 };
