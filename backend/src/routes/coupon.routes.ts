@@ -10,6 +10,7 @@ import { authorizeRoles } from '../middleware/roles.js';
 
 const router = Router();
 
+router.get('/', getActiveCoupons);
 router.get('/active', getActiveCoupons);
 router.post('/validate', validateCoupon);
 router.get('/admin-all', authenticateJWT, authorizeRoles('admin'), getAllCouponsAdmin);

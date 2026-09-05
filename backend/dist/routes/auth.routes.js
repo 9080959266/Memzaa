@@ -9,4 +9,6 @@ router.post('/login', auth_controller_js_1.login);
 router.post('/google', auth_controller_js_1.googleAuth);
 router.get('/me', auth_js_1.authenticateJWT, auth_controller_js_1.getMe);
 router.put('/profile', auth_js_1.authenticateJWT, auth_controller_js_1.updateProfile);
+router.post('/addresses', auth_js_1.authenticateJWT, auth_controller_js_1.addAddress);
+router.delete('/addresses/:addressId', auth_js_1.authenticateJWT, auth_controller_js_1.deleteAddress);
 exports.default = router;

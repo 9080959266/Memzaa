@@ -1,13 +1,17 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProductBySlug = exports.getProducts = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const Product_js_1 = require("../models/Product.js");
 const Inventory_js_1 = require("../models/Inventory.js");
 const Review_js_1 = require("../models/Review.js");
 const getProducts = async (req, res) => {
     try {
         const { category, search, minPrice, maxPrice, featured, sort = 'popular' } = req.query;
-        const filter = { isActive: true };
+        const filter = { isActive: { $ne: false } };
         if (category && category !== 'All') {
             filter.category = category;
         }
@@ -52,7 +56,14 @@ exports.getProducts = getProducts;
 const getProductBySlug = async (req, res) => {
     try {
         const { slug } = req.params;
-        const product = await Product_js_1.Product.findOne({ slug, isActive: true });
+        const isObjectId = mongoose_1.default.Types.ObjectId.isValid(slug);
+        const product = await Product_js_1.Product.findOne({
+            $or: [
+                { slug },
+                ...(isObjectId ? [{ _id: slug }] : [])
+            ],
+            isActive: { $ne: false }
+        });
         if (!product) {
             res.status(404).json({ success: false, message: 'Product not found' });
             return;
@@ -62,7 +73,7 @@ const getProductBySlug = async (req, res) => {
         const relatedProducts = await Product_js_1.Product.find({
             category: product.category,
             _id: { $ne: product._id },
-            isActive: true
+            isActive: { $ne: false }
         }).limit(4);
         res.json({
             success: true,

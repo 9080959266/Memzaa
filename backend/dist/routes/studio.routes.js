@@ -10,5 +10,7 @@ router.get('/compare', studio_controller_js_1.compareStudios);
 router.get('/my-studio', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner'), studio_controller_js_1.getMyStudio);
 router.put('/my-studio', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner'), studio_controller_js_1.updateStudio);
 router.put('/:id/moderate', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), studio_controller_js_1.adminApproveStudio);
+router.put('/:id/toggle-active', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), studio_controller_js_1.toggleStudioActive);
+router.put('/:id/admin-update', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), studio_controller_js_1.adminUpdateStudio);
 router.get('/:id', studio_controller_js_1.getStudioById);
 exports.default = router;

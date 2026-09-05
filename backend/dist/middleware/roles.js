@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authorizeRoles = void 0;
-const authorizeRoles = (...allowedRoles) => {
+exports.requireRole = exports.authorizeRoles = void 0;
+const authorizeRoles = (...rolesOrArray) => {
+    const allowedRoles = rolesOrArray.flat();
     return (req, res, next) => {
         if (!req.user) {
             res.status(401).json({ success: false, message: 'Unauthorized. Please login.' });
@@ -18,3 +19,4 @@ const authorizeRoles = (...allowedRoles) => {
     };
 };
 exports.authorizeRoles = authorizeRoles;
+exports.requireRole = exports.authorizeRoles;

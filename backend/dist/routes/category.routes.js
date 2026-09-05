@@ -7,5 +7,7 @@ const roles_js_1 = require("../middleware/roles.js");
 const router = (0, express_1.Router)();
 router.get('/', category_controller_js_1.getCategories);
 router.post('/', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), category_controller_js_1.createCategory);
+router.put('/:id/toggle-status', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), category_controller_js_1.toggleCategoryStatus);
 router.put('/:id', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), category_controller_js_1.updateCategory);
+router.delete('/:id', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), category_controller_js_1.deleteCategory);
 exports.default = router;

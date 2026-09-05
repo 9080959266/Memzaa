@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { PhotoJob } from '../models/PhotoJob.js';
 import { Studio } from '../models/Studio.js';
+import { Order } from '../models/Order.js';
+import { Booking } from '../models/Booking.js';
 import { Notification } from '../models/Notification.js';
 import { AuthRequest } from '../middleware/auth.js';
 
@@ -80,6 +82,28 @@ export const updateJobStage = async (req: AuthRequest, res: Response): Promise<v
     if (assignedEditor) job.assignedEditor = assignedEditor;
 
     await job.save();
+
+    // Synchronize linked Order timeline and status
+    if (stage && job.orderId) {
+      const order = await Order.findById(job.orderId);
+      if (order) {
+        order.currentStatus = stage;
+        const stepIndex = order.timeline.findIndex(t => t.status === stage);
+        if (stepIndex !== -1) {
+          for (let i = 0; i <= stepIndex; i++) {
+            order.timeline[i].completed = true;
+          }
+          order.timeline[stepIndex].timestamp = new Date();
+          if (notes) order.timeline[stepIndex].description = notes;
+        }
+        await order.save();
+      }
+    }
+
+    // Synchronize linked Booking status if completed
+    if (stage === 'COMPLETED' && job.bookingId) {
+      await Booking.findByIdAndUpdate(job.bookingId, { bookingStatus: 'completed' });
+    }
 
     // Customer Notification
     await Notification.create({

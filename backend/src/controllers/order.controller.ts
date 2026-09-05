@@ -30,9 +30,79 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
 
     const { shippingAddress, paymentMethod = 'razorpay', transactionId } = req.body;
 
-    const cart = await Cart.findOne({ userId: req.user.id }).populate('items.productId');
-    if (!cart || cart.items.length === 0) {
-      res.status(400).json({ success: false, message: 'Your cart is empty' });
+    let cart = await Cart.findOne({ userId: req.user.id })
+      .populate('items.productId')
+      .populate({
+        path: 'items.packageId',
+        populate: [
+          { path: 'studioId', select: 'name city logoImage rating address' },
+          { path: 'categoryId', select: 'name slug' }
+        ]
+      });
+
+    let orderItems: any[] = [];
+    let subtotal = 0;
+    let discount = 0;
+    let couponCode: string | undefined = undefined;
+    let shippingFee = 0;
+    let totalAmount = 0;
+
+    if (cart && cart.items.length > 0) {
+      orderItems = cart.items.map((item: any) => {
+        if (item.itemType === 'package' || item.packageId) {
+          const pkg = item.packageId;
+          return {
+            itemType: 'package',
+            packageId: pkg?._id || item.packageId,
+            studioId: pkg?.studioId?._id || item.studioId,
+            title: pkg?.title || item.title || 'Photoshoot Package',
+            category: pkg?.categoryId?.name || pkg?.category || 'Photoshoot Package',
+            thumbnail: pkg?.bannerImage || pkg?.thumbnail || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=400&q=80',
+            quantity: item.quantity || 1,
+            price: item.unitPrice || pkg?.discountPrice || pkg?.price || 4999,
+            customization: item.customization,
+            itemTotal: item.itemTotal || ((item.unitPrice || 4999) * (item.quantity || 1))
+          };
+        } else {
+          const p = item.productId;
+          return {
+            itemType: 'product',
+            productId: p?._id || item.productId,
+            title: p?.title || item.title || 'Personalized Keepsake',
+            category: p?.category || 'Frames',
+            thumbnail: p?.thumbnail || item.thumbnail || item.customization?.uploadedPhoto || 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=400&q=80',
+            quantity: item.quantity || 1,
+            price: item.unitPrice || p?.discountPrice || p?.basePrice || 999,
+            customization: item.customization,
+            itemTotal: item.itemTotal || ((item.unitPrice || 999) * (item.quantity || 1))
+          };
+        }
+      });
+      subtotal = cart.subtotal;
+      discount = cart.discount;
+      couponCode = cart.couponCode;
+      shippingFee = cart.deliveryFee;
+      totalAmount = cart.total;
+    } else if (req.body.items && req.body.items.length > 0) {
+      orderItems = req.body.items.map((item: any) => ({
+        itemType: item.itemType || (item.packageId ? 'package' : 'product'),
+        productId: item.productId || (!item.packageId ? item._id : undefined),
+        packageId: item.packageId,
+        studioId: item.studioId,
+        title: item.title || item.name || 'Order Item',
+        category: item.category || (item.packageId ? 'Photoshoot Package' : 'Frames'),
+        thumbnail: item.thumbnail || item.image || item.customization?.uploadedPhoto || 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=400&q=80',
+        quantity: item.quantity || 1,
+        price: item.price || item.unitPrice || 999,
+        customization: item.customization,
+        itemTotal: (item.price || item.unitPrice || 999) * (item.quantity || 1)
+      }));
+      subtotal = orderItems.reduce((acc, i) => acc + i.itemTotal, 0);
+      discount = req.body.discount || 0;
+      shippingFee = subtotal > 1500 ? 0 : 99;
+      totalAmount = subtotal - discount + shippingFee;
+    } else {
+      res.status(400).json({ success: false, message: 'Your cart is empty. Please add items to checkout.' });
       return;
     }
 
@@ -43,20 +113,6 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
 
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const orderId = `MEM-ORD-${randomSuffix}`;
-
-    const orderItems = cart.items.map((item: any) => {
-      const p = item.productId;
-      return {
-        productId: p._id,
-        title: p.title,
-        category: p.category,
-        thumbnail: p.thumbnail,
-        quantity: item.quantity,
-        price: item.unitPrice,
-        customization: item.customization,
-        itemTotal: item.itemTotal
-      };
-    });
 
     // Initialize full timeline
     const timeline = ORDER_STAGES.map((stage, idx) => ({
@@ -72,11 +128,11 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       orderId,
       customerId: req.user.id,
       items: orderItems,
-      subtotal: cart.subtotal,
-      discount: cart.discount,
-      couponCode: cart.couponCode,
-      shippingFee: cart.deliveryFee,
-      totalAmount: cart.total,
+      subtotal,
+      discount,
+      couponCode,
+      shippingFee,
+      totalAmount,
       paymentStatus: 'paid',
       paymentMethod,
       transactionId: transactionId || `TXN_${Date.now()}`,
@@ -109,10 +165,10 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
         taxRate: 18,
         total: i.itemTotal
       })),
-      subtotal: cart.subtotal,
-      discount: cart.discount,
-      taxAmount: Math.round(cart.subtotal * 0.18),
-      grandTotal: cart.total,
+      subtotal,
+      discount,
+      taxAmount: Math.round(subtotal * 0.18),
+      grandTotal: totalAmount,
       paymentStatus: 'paid',
       paymentMethod: paymentMethod.toUpperCase(),
       paymentRef: transactionId || `TXN_${Date.now()}`
@@ -146,13 +202,15 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       });
     }
 
-    // Clear cart
-    cart.items = [];
-    cart.subtotal = 0;
-    cart.discount = 0;
-    cart.couponCode = undefined;
-    cart.total = 0;
-    await cart.save();
+    // Clear cart if it existed
+    if (cart) {
+      cart.items = [];
+      cart.subtotal = 0;
+      cart.discount = 0;
+      cart.couponCode = undefined;
+      cart.total = 0;
+      await cart.save();
+    }
 
     // Customer Notification
     await Notification.create({
@@ -234,7 +292,8 @@ export const getAllOrdersAdmin = async (req: AuthRequest, res: Response): Promis
 export const updateOrderStatus = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { status, note } = req.body;
+    const status = req.body.status || req.body.currentStatus;
+    const { note } = req.body;
 
     const order = await Order.findById(id);
     if (!order) {

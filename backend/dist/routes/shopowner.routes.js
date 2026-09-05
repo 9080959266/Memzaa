@@ -5,5 +5,15 @@ const shopowner_controller_js_1 = require("../controllers/shopowner.controller.j
 const auth_js_1 = require("../middleware/auth.js");
 const roles_js_1 = require("../middleware/roles.js");
 const router = (0, express_1.Router)();
-router.get('/dashboard', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner'), shopowner_controller_js_1.getShopOwnerDashboard);
+router.use(auth_js_1.authenticateJWT);
+router.use((0, roles_js_1.authorizeRoles)('shop_owner', 'admin'));
+router.get('/dashboard', shopowner_controller_js_1.getShopOwnerDashboard);
+router.get('/orders', shopowner_controller_js_1.getShopOwnerOrders);
+router.get('/customers', shopowner_controller_js_1.getShopOwnerCustomers);
+router.get('/reviews', shopowner_controller_js_1.getShopOwnerReviews);
+router.put('/studio', shopowner_controller_js_1.updateStudioSettings);
+router.put('/studio/block-date', shopowner_controller_js_1.toggleBlockDate);
+router.get('/offers', shopowner_controller_js_1.getShopOwnerOffers);
+router.post('/offers', shopowner_controller_js_1.createShopOwnerOffer);
+router.get('/reports', shopowner_controller_js_1.getShopOwnerReports);
 exports.default = router;

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deletePackage = exports.updatePackage = exports.createPackage = exports.getPackageById = exports.getPackages = void 0;
+exports.deletePackage = exports.updatePackage = exports.createPackage = exports.getPackagesByStudio = exports.getPackageById = exports.getPackages = void 0;
 const Package_js_1 = require("../models/Package.js");
 const Studio_js_1 = require("../models/Studio.js");
 const getPackages = async (req, res) => {
@@ -46,6 +46,22 @@ const getPackageById = async (req, res) => {
     }
 };
 exports.getPackageById = getPackageById;
+const getPackagesByStudio = async (req, res) => {
+    try {
+        const { studioId } = req.params;
+        const packages = await Package_js_1.Package.find({ studioId, isActive: true })
+            .populate('studioId', 'name city rating logoImage')
+            .populate('categoryId', 'name slug icon image');
+        res.json({
+            success: true,
+            packages
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+exports.getPackagesByStudio = getPackagesByStudio;
 const createPackage = async (req, res) => {
     try {
         if (!req.user) {

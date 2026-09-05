@@ -29,6 +29,10 @@ import invoiceRoutes from './routes/invoice.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import shopownerRoutes from './routes/shopowner.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import photoRoutes from './routes/photo.routes.js';
+import deliveryRoutes from './routes/delivery.routes.js';
+import staffRoutes from './routes/staff.routes.js';
+import complaintRoutes from './routes/complaint.routes.js';
 
 dotenv.config();
 
@@ -45,14 +49,35 @@ const startServer = async () => {
   const userCount = await User.countDocuments();
   if (userCount === 0) {
     console.log('📦 Database is empty. Auto-populating rich Indian photography marketplace demo data...');
-    await seedDatabase();
+    await seedDatabase(false);
   }
 
-  // Middleware
-  app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
-    credentials: true
-  }));
+  // Production & Local-Network CORS Configuration
+  const configuredClients = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map((s) => s.trim()) : [];
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Mobile applications, Expo, React Native CLI, curl, Postman have no Origin header
+        if (!origin) return callback(null, true);
+
+        // Explicitly allowed domains in production
+        if (configuredClients.length === 0 || configuredClients.includes('*') || configuredClients.includes(origin)) {
+          return callback(null, true);
+        }
+
+        // Local development and physical real-device Wi-Fi testing (e.g. 192.168.x.x, 10.x.x.x, localhost)
+        const isLocalNetwork = /^(http:\/\/)?(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin);
+        if (isLocalNetwork) {
+          return callback(null, true);
+        }
+
+        return callback(null, true);
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-razorpay-signature']
+    })
+  );
   app.use(express.json({ limit: '30mb' }));
   app.use(express.urlencoded({ extended: true, limit: '30mb' }));
   app.use(morgan('dev'));
@@ -71,6 +96,7 @@ const startServer = async () => {
   app.use('/api/cart', cartRoutes);
   app.use('/api/orders', orderRoutes);
   app.use('/api/photo-jobs', photojobRoutes);
+  app.use('/api/photojobs', photojobRoutes);
   app.use('/api/proofs', proofRoutes);
   app.use('/api/payments', paymentRoutes);
   app.use('/api/reviews', reviewRoutes);
@@ -81,6 +107,10 @@ const startServer = async () => {
   app.use('/api/upload', uploadRoutes);
   app.use('/api/seller', shopownerRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/photos', photoRoutes);
+  app.use('/api/deliveries', deliveryRoutes);
+  app.use('/api/staff', staffRoutes);
+  app.use('/api/complaints', complaintRoutes);
 
   // Health Check
   app.get('/api/health', (req, res) => {

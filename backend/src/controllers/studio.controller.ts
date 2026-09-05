@@ -19,7 +19,14 @@ export const getAllStudios = async (req: Request, res: Response): Promise<void> 
       limit = 20 
     } = req.query;
 
-    const query: any = { verifiedStatus: 'approved' };
+    const statusParam = req.query.status as string;
+    const query: any = {};
+    if (statusParam && statusParam !== 'all') {
+      query.verifiedStatus = statusParam;
+    } else if (!statusParam) {
+      query.verifiedStatus = 'approved';
+      query.isActive = { $ne: false };
+    }
 
     if (city && city !== 'All') {
       query.city = { $regex: new RegExp(`^${city}$`, 'i') };
@@ -36,6 +43,31 @@ export const getAllStudios = async (req: Request, res: Response): Promise<void> 
 
     if (rating) {
       query.rating = { $gte: Number(rating) };
+    }
+
+    if (category && category !== 'All') {
+      const matchingPackages = await Package.find({
+        $or: [
+          { title: { $regex: category as string, $options: 'i' } },
+          { slug: { $regex: category as string, $options: 'i' } }
+        ]
+      }).select('studioId');
+
+      const studioIds = matchingPackages.map((p) => p.studioId);
+
+      const categoryMatch = {
+        $or: [
+          { 'portfolio.category': { $regex: category as string, $options: 'i' } },
+          { _id: { $in: studioIds } }
+        ]
+      };
+
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, categoryMatch];
+        delete query.$or;
+      } else {
+        query.$or = categoryMatch.$or;
+      }
     }
 
     if (priceRange) {
@@ -92,7 +124,7 @@ export const getStudioById = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const packages = await Package.find({ studioId: id, isActive: true })
+    const packages = await Package.find({ studioId: id, isActive: { $ne: false } })
       .populate('categoryId', 'name slug icon image');
 
     const reviews = await Review.find({ targetType: 'studio', targetId: id, isApproved: true })
@@ -281,3 +313,45 @@ export const adminApproveStudio = async (req: AuthRequest, res: Response): Promi
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const toggleStudioActive = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const studio = await Studio.findById(id);
+    if (!studio) {
+      res.status(404).json({ success: false, message: 'Studio not found' });
+      return;
+    }
+
+    studio.isActive = !studio.isActive;
+    await studio.save();
+
+    res.json({
+      success: true,
+      message: `Studio ${studio.isActive ? 'activated' : 'deactivated'} successfully`,
+      studio
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const adminUpdateStudio = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const studio = await Studio.findByIdAndUpdate(id, req.body, { new: true });
+    if (!studio) {
+      res.status(404).json({ success: false, message: 'Studio not found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Studio updated successfully by admin',
+      studio
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

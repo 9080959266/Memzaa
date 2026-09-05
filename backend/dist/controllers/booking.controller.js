@@ -26,6 +26,25 @@ const createBooking = async (req, res) => {
         // Generate unique booking ID
         const randomSuffix = Math.floor(1000 + Math.random() * 9000);
         const bookingId = `MEM-BKG-${randomSuffix}`;
+        // Normalize venueType to match Mongoose enum: ['studio', 'outdoor', 'customer_home', 'resort_hotel', 'temple_hall']
+        let normalizedVenueType = (venue?.venueType || 'studio').toLowerCase().replace(/\s+/g, '_');
+        if (!['studio', 'outdoor', 'customer_home', 'resort_hotel', 'temple_hall'].includes(normalizedVenueType)) {
+            if (normalizedVenueType.includes('hotel') || normalizedVenueType.includes('resort')) {
+                normalizedVenueType = 'resort_hotel';
+            }
+            else if (normalizedVenueType.includes('home')) {
+                normalizedVenueType = 'customer_home';
+            }
+            else if (normalizedVenueType.includes('temple') || normalizedVenueType.includes('hall')) {
+                normalizedVenueType = 'temple_hall';
+            }
+            else if (normalizedVenueType.includes('outdoor')) {
+                normalizedVenueType = 'outdoor';
+            }
+            else {
+                normalizedVenueType = 'studio';
+            }
+        }
         const booking = await Booking_js_1.Booking.create({
             bookingId,
             customerId: req.user.id,
@@ -38,7 +57,7 @@ const createBooking = async (req, res) => {
                 city: venue?.city || studio.city,
                 landmark: venue?.landmark || '',
                 pincode: venue?.pincode || '600001',
-                venueType: venue?.venueType || 'studio'
+                venueType: normalizedVenueType
             },
             totalAmount,
             advanceAmount,

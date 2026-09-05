@@ -8,6 +8,7 @@ interface CartContextType {
   cartCount: number;
   isLoading: boolean;
   addToCart: (productId: string, quantity: number, customization?: ICartItemCustomization) => Promise<void>;
+  addPackageToCart: (packageId: string, studioId?: string, quantity?: number) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   applyCoupon: (code: string) => Promise<string>;
@@ -52,6 +53,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (err: any) {
       throw new Error(err.response?.data?.message || 'Failed to add item to cart');
+    }
+  };
+
+  const addPackageToCart = async (packageId: string, studioId?: string, quantity: number = 1) => {
+    try {
+      const res = await api.post('/cart/add', { packageId, studioId, quantity, itemType: 'package' });
+      if (res.data.success) {
+        setCart(res.data.cart);
+      }
+    } catch (err: any) {
+      throw new Error(err.response?.data?.message || 'Failed to add package to cart');
     }
   };
 
@@ -103,6 +115,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         cartCount,
         isLoading,
         addToCart,
+        addPackageToCart,
         updateQuantity,
         removeItem,
         applyCoupon,

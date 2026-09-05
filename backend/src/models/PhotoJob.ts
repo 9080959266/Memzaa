@@ -6,6 +6,7 @@ export type JobStage =
   | 'EDITING'
   | 'PROOF_READY'
   | 'CUSTOMER_APPROVAL'
+  | 'CUSTOMER_APPROVED'
   | 'PRINTING'
   | 'QUALITY_CHECK'
   | 'READY'
@@ -75,6 +76,7 @@ const PhotoJobSchema = new Schema<IPhotoJob>(
         'EDITING',
         'PROOF_READY',
         'CUSTOMER_APPROVAL',
+        'CUSTOMER_APPROVED',
         'PRINTING',
         'QUALITY_CHECK',
         'READY',

@@ -1,13 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.adminApproveStudio = exports.updateStudio = exports.getMyStudio = exports.compareStudios = exports.getStudioById = exports.getAllStudios = void 0;
+exports.adminUpdateStudio = exports.toggleStudioActive = exports.adminApproveStudio = exports.updateStudio = exports.getMyStudio = exports.compareStudios = exports.getStudioById = exports.getAllStudios = void 0;
 const Studio_js_1 = require("../models/Studio.js");
 const Package_js_1 = require("../models/Package.js");
 const Review_js_1 = require("../models/Review.js");
 const getAllStudios = async (req, res) => {
     try {
         const { city, category, minPrice, maxPrice, rating, search, priceRange, sort = 'recommended', page = 1, limit = 20 } = req.query;
-        const query = { verifiedStatus: 'approved' };
+        const statusParam = req.query.status;
+        const query = {};
+        if (statusParam && statusParam !== 'all') {
+            query.verifiedStatus = statusParam;
+        }
+        else if (!statusParam) {
+            query.verifiedStatus = 'approved';
+            query.isActive = { $ne: false };
+        }
         if (city && city !== 'All') {
             query.city = { $regex: new RegExp(`^${city}$`, 'i') };
         }
@@ -21,6 +29,28 @@ const getAllStudios = async (req, res) => {
         }
         if (rating) {
             query.rating = { $gte: Number(rating) };
+        }
+        if (category && category !== 'All') {
+            const matchingPackages = await Package_js_1.Package.find({
+                $or: [
+                    { title: { $regex: category, $options: 'i' } },
+                    { slug: { $regex: category, $options: 'i' } }
+                ]
+            }).select('studioId');
+            const studioIds = matchingPackages.map((p) => p.studioId);
+            const categoryMatch = {
+                $or: [
+                    { 'portfolio.category': { $regex: category, $options: 'i' } },
+                    { _id: { $in: studioIds } }
+                ]
+            };
+            if (query.$or) {
+                query.$and = [{ $or: query.$or }, categoryMatch];
+                delete query.$or;
+            }
+            else {
+                query.$or = categoryMatch.$or;
+            }
         }
         if (priceRange) {
             query.priceRange = priceRange;
@@ -74,7 +104,7 @@ const getStudioById = async (req, res) => {
             res.status(404).json({ success: false, message: 'Studio not found' });
             return;
         }
-        const packages = await Package_js_1.Package.find({ studioId: id, isActive: true })
+        const packages = await Package_js_1.Package.find({ studioId: id, isActive: { $ne: false } })
             .populate('categoryId', 'name slug icon image');
         const reviews = await Review_js_1.Review.find({ targetType: 'studio', targetId: id, isApproved: true })
             .sort({ createdAt: -1 })
@@ -251,3 +281,43 @@ const adminApproveStudio = async (req, res) => {
     }
 };
 exports.adminApproveStudio = adminApproveStudio;
+const toggleStudioActive = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const studio = await Studio_js_1.Studio.findById(id);
+        if (!studio) {
+            res.status(404).json({ success: false, message: 'Studio not found' });
+            return;
+        }
+        studio.isActive = !studio.isActive;
+        await studio.save();
+        res.json({
+            success: true,
+            message: `Studio ${studio.isActive ? 'activated' : 'deactivated'} successfully`,
+            studio
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+exports.toggleStudioActive = toggleStudioActive;
+const adminUpdateStudio = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const studio = await Studio_js_1.Studio.findByIdAndUpdate(id, req.body, { new: true });
+        if (!studio) {
+            res.status(404).json({ success: false, message: 'Studio not found' });
+            return;
+        }
+        res.json({
+            success: true,
+            message: 'Studio updated successfully by admin',
+            studio
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+exports.adminUpdateStudio = adminUpdateStudio;

@@ -1,9 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.applyCartCoupon = exports.removeCartItem = exports.updateCartItem = exports.addToCart = exports.getCart = void 0;
+exports.clearCart = exports.applyCartCoupon = exports.removeCartItem = exports.updateCartItem = exports.addToCart = exports.getCart = void 0;
 const Cart_js_1 = require("../models/Cart.js");
 const Product_js_1 = require("../models/Product.js");
+const Package_js_1 = require("../models/Package.js");
 const Coupon_js_1 = require("../models/Coupon.js");
+const populateCartQuery = (query) => {
+    return query
+        .populate('items.productId')
+        .populate({
+        path: 'items.packageId',
+        populate: [
+            { path: 'studioId', select: 'name city logoImage rating address' },
+            { path: 'categoryId', select: 'name slug' }
+        ]
+    })
+        .populate('items.studioId', 'name city logoImage rating address');
+};
 const recalculateCart = async (cart) => {
     let subtotal = 0;
     for (const item of cart.items) {
@@ -38,7 +51,7 @@ const getCart = async (req, res) => {
             res.status(401).json({ success: false, message: 'Not authenticated' });
             return;
         }
-        let cart = await Cart_js_1.Cart.findOne({ userId: req.user.id }).populate('items.productId');
+        let cart = await populateCartQuery(Cart_js_1.Cart.findOne({ userId: req.user.id }));
         if (!cart) {
             cart = await Cart_js_1.Cart.create({ userId: req.user.id, items: [] });
         }
@@ -59,37 +72,80 @@ const addToCart = async (req, res) => {
             res.status(401).json({ success: false, message: 'Not authenticated' });
             return;
         }
-        const { productId, quantity = 1, customization } = req.body;
-        const product = await Product_js_1.Product.findById(productId);
-        if (!product || !product.isActive) {
-            res.status(404).json({ success: false, message: 'Product not available' });
+        const { productId, packageId, studioId, quantity = 1, customization } = req.body;
+        if (!productId && !packageId) {
+            res.status(400).json({ success: false, message: 'productId or packageId is required' });
             return;
-        }
-        let unitPrice = product.discountPrice || product.basePrice;
-        // Check size price offset
-        if (customization?.size && product.customizationOptions?.sizes) {
-            const selectedSize = product.customizationOptions.sizes.find(s => s.name === customization.size);
-            if (selectedSize && selectedSize.priceOffset) {
-                unitPrice += selectedSize.priceOffset;
-            }
         }
         let cart = await Cart_js_1.Cart.findOne({ userId: req.user.id });
         if (!cart) {
             cart = await Cart_js_1.Cart.create({ userId: req.user.id, items: [] });
         }
-        // Add as new item (customized products are unique)
-        cart.items.push({
-            productId: product._id,
-            quantity: Number(quantity),
-            unitPrice,
-            customization,
-            itemTotal: unitPrice * Number(quantity)
-        });
+        let itemName = '';
+        if (packageId) {
+            const pkg = await Package_js_1.Package.findById(packageId);
+            if (!pkg || pkg.isActive === false) {
+                res.status(404).json({ success: false, message: 'Photoshoot package not available' });
+                return;
+            }
+            itemName = pkg.title;
+            const unitPrice = pkg.discountPrice || pkg.price;
+            // Duplicate package in cart -> increment quantity instead of creating duplicate
+            const existingItem = cart.items.find((it) => it.itemType === 'package' && it.packageId?.toString() === packageId.toString());
+            if (existingItem) {
+                existingItem.quantity += Number(quantity);
+                existingItem.itemTotal = existingItem.unitPrice * existingItem.quantity;
+            }
+            else {
+                cart.items.push({
+                    itemType: 'package',
+                    packageId: pkg._id,
+                    studioId: studioId || pkg.studioId,
+                    quantity: Number(quantity),
+                    unitPrice,
+                    itemTotal: unitPrice * Number(quantity)
+                });
+            }
+        }
+        else {
+            const product = await Product_js_1.Product.findById(productId);
+            if (!product || product.isActive === false) {
+                res.status(404).json({ success: false, message: 'Product not available' });
+                return;
+            }
+            itemName = product.title;
+            let unitPrice = product.discountPrice || product.basePrice;
+            // Check size price offset
+            if (customization?.size && product.customizationOptions?.sizes) {
+                const selectedSize = product.customizationOptions.sizes.find(s => s.name === customization.size);
+                if (selectedSize && selectedSize.priceOffset) {
+                    unitPrice += selectedSize.priceOffset;
+                }
+            }
+            // If product without customization already exists, increment quantity
+            const existingItem = !customization?.uploadedPhoto && !customization?.customText
+                ? cart.items.find((it) => it.itemType !== 'package' && it.productId?.toString() === productId.toString())
+                : null;
+            if (existingItem) {
+                existingItem.quantity += Number(quantity);
+                existingItem.itemTotal = existingItem.unitPrice * existingItem.quantity;
+            }
+            else {
+                cart.items.push({
+                    itemType: 'product',
+                    productId: product._id,
+                    quantity: Number(quantity),
+                    unitPrice,
+                    customization,
+                    itemTotal: unitPrice * Number(quantity)
+                });
+            }
+        }
         await recalculateCart(cart);
-        const populatedCart = await Cart_js_1.Cart.findById(cart._id).populate('items.productId');
+        const populatedCart = await populateCartQuery(Cart_js_1.Cart.findById(cart._id));
         res.json({
             success: true,
-            message: `${product.title} added to cart!`,
+            message: `${itemName} added to cart!`,
             cart: populatedCart
         });
     }
@@ -124,7 +180,7 @@ const updateCartItem = async (req, res) => {
             item.itemTotal = item.unitPrice * item.quantity;
         }
         await recalculateCart(cart);
-        const populatedCart = await Cart_js_1.Cart.findById(cart._id).populate('items.productId');
+        const populatedCart = await populateCartQuery(Cart_js_1.Cart.findById(cart._id));
         res.json({
             success: true,
             message: 'Cart updated',
@@ -150,7 +206,7 @@ const removeCartItem = async (req, res) => {
         }
         cart.items = cart.items.filter(i => i._id?.toString() !== itemId);
         await recalculateCart(cart);
-        const populatedCart = await Cart_js_1.Cart.findById(cart._id).populate('items.productId');
+        const populatedCart = await populateCartQuery(Cart_js_1.Cart.findById(cart._id));
         res.json({
             success: true,
             message: 'Item removed from cart',
@@ -196,7 +252,7 @@ const applyCartCoupon = async (req, res) => {
         }
         cart.couponCode = coupon.code;
         await recalculateCart(cart);
-        const populatedCart = await Cart_js_1.Cart.findById(cart._id).populate('items.productId');
+        const populatedCart = await populateCartQuery(Cart_js_1.Cart.findById(cart._id));
         res.json({
             success: true,
             message: `Coupon '${coupon.code}' applied! Saved ₹${cart.discount}`,
@@ -208,3 +264,30 @@ const applyCartCoupon = async (req, res) => {
     }
 };
 exports.applyCartCoupon = applyCartCoupon;
+const clearCart = async (req, res) => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ success: false, message: 'Not authenticated' });
+            return;
+        }
+        const cart = await Cart_js_1.Cart.findOne({ userId: req.user.id });
+        if (cart) {
+            cart.items = [];
+            cart.couponCode = undefined;
+            cart.subtotal = 0;
+            cart.discount = 0;
+            cart.deliveryFee = 0;
+            cart.total = 0;
+            await cart.save();
+        }
+        res.json({
+            success: true,
+            message: 'Cart cleared successfully',
+            cart
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+exports.clearCart = clearCart;

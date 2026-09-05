@@ -1,7 +1,8 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth.js';
 
-export const authorizeRoles = (...allowedRoles: Array<'customer' | 'shop_owner' | 'admin'>) => {
+export const authorizeRoles = (...rolesOrArray: Array<'customer' | 'shop_owner' | 'admin' | Array<'customer' | 'shop_owner' | 'admin'>>) => {
+  const allowedRoles = rolesOrArray.flat() as Array<'customer' | 'shop_owner' | 'admin'>;
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ success: false, message: 'Unauthorized. Please login.' });
@@ -19,3 +20,6 @@ export const authorizeRoles = (...allowedRoles: Array<'customer' | 'shop_owner' 
     next();
   };
 };
+
+export const requireRole = authorizeRoles;
+

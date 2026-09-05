@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   MapPin, 
   Phone, 
@@ -14,13 +14,16 @@ import {
   Heart, 
   Share2, 
   Calendar, 
-  ArrowLeft 
+  ArrowLeft,
+  ShoppingCart
 } from 'lucide-react';
 import api from '../../api/client';
 import { IStudio, IPackage, IReview } from '../../types';
 import { RatingStars } from '../../components/common/RatingStars';
 import { BookingModal } from '../../components/customer/BookingModal';
 import { useWishlist } from '../../context/WishlistContext';
+import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const StudioDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +40,30 @@ export const StudioDetail: React.FC = () => {
 
   // Booking Modal
   const [selectedBookingPkg, setSelectedBookingPkg] = useState<IPackage | null>(null);
+
+  // Cart integration
+  const { addPackageToCart } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [addingCartPkgId, setAddingCartPkgId] = useState<string | null>(null);
+  const [cartSuccessMsg, setCartSuccessMsg] = useState<string | null>(null);
+
+  const handleAddToCart = async (pkg: IPackage) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    try {
+      setAddingCartPkgId(pkg._id);
+      await addPackageToCart(pkg._id, studio?._id, 1);
+      setCartSuccessMsg(`"${pkg.title}" added to cart!`);
+      setTimeout(() => setCartSuccessMsg(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to add package to cart');
+    } finally {
+      setAddingCartPkgId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchStudio = async () => {
@@ -257,15 +284,30 @@ export const StudioDetail: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
-                        <span className="text-xs text-slate-500">Free rescheduling available up to 48 hrs</span>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedBookingPkg(pkg)}
-                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-6 py-2.5 rounded-xl transition shadow-md shadow-amber-500/20 flex items-center gap-1.5"
-                        >
-                          <Calendar className="w-4 h-4" /> Book Session
-                        </button>
+                      <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                        <span className="text-xs text-slate-500 hidden xl:inline">Free rescheduling up to 48 hrs</span>
+                        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                          <button
+                            type="button"
+                            onClick={() => handleAddToCart(pkg)}
+                            disabled={addingCartPkgId === pkg._id}
+                            className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 active:bg-slate-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            {addingCartPkgId === pkg._id ? (
+                              <span className="animate-spin text-xs">⏳</span>
+                            ) : (
+                              <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
+                            )}
+                            Add to Cart
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBookingPkg(pkg)}
+                            className="flex-1 sm:flex-initial bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Calendar className="w-3.5 h-3.5" /> Book Now
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -407,6 +449,17 @@ export const StudioDetail: React.FC = () => {
           pkg={selectedBookingPkg}
           studio={studio}
         />
+      )}
+
+      {/* Cart Success Toast */}
+      {cartSuccessMsg && (
+        <div className="fixed bottom-6 right-6 bg-slate-950 text-white border border-amber-500/40 px-5 py-3.5 rounded-2xl shadow-2xl z-50 flex items-center gap-3 text-xs font-bold animate-bounce">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <span>{cartSuccessMsg}</span>
+          <Link to="/cart" className="ml-2 bg-amber-500 text-slate-950 px-3 py-1 rounded-lg font-extrabold hover:bg-amber-400 transition">
+            View Cart
+          </Link>
+        </div>
       )}
     </div>
   );

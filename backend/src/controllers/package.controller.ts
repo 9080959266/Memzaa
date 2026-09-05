@@ -46,6 +46,22 @@ export const getPackageById = async (req: Request, res: Response): Promise<void>
   }
 };
 
+export const getPackagesByStudio = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { studioId } = req.params;
+    const packages = await Package.find({ studioId, isActive: true })
+      .populate('studioId', 'name city rating logoImage')
+      .populate('categoryId', 'name slug icon image');
+
+    res.json({
+      success: true,
+      packages
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const createPackage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {

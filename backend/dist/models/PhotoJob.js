@@ -63,6 +63,7 @@ const PhotoJobSchema = new mongoose_1.Schema({
             'EDITING',
             'PROOF_READY',
             'CUSTOMER_APPROVAL',
+            'CUSTOMER_APPROVED',
             'PRINTING',
             'QUALITY_CHECK',
             'READY',

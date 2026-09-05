@@ -12,6 +12,7 @@ import { authorizeRoles } from '../middleware/roles.js';
 const router = Router();
 
 router.post('/', authenticateJWT, createOrder);
+router.get('/my', authenticateJWT, getMyOrders);
 router.get('/my-orders', authenticateJWT, getMyOrders);
 router.get('/admin-all', authenticateJWT, authorizeRoles('admin', 'shop_owner'), getAllOrdersAdmin);
 router.get('/:id', authenticateJWT, getOrderById);

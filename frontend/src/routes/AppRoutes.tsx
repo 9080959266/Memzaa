@@ -36,6 +36,15 @@ import { ShopOwnerBookings } from '../pages/shopOwner/ShopOwnerBookings';
 import { ShopOwnerProofs } from '../pages/shopOwner/ShopOwnerProofs';
 import { ShopOwnerInventory } from '../pages/shopOwner/ShopOwnerInventory';
 import { ShopOwnerRevenue } from '../pages/shopOwner/ShopOwnerRevenue';
+import { ShopOwnerOrders } from '../pages/shopOwner/ShopOwnerOrders';
+import { ShopOwnerCustomers } from '../pages/shopOwner/ShopOwnerCustomers';
+import { ShopOwnerReviews } from '../pages/shopOwner/ShopOwnerReviews';
+import { ShopOwnerProduction } from '../pages/shopOwner/ShopOwnerProduction';
+import { ShopOwnerProducts } from '../pages/shopOwner/ShopOwnerProducts';
+import { ShopOwnerStaff } from '../pages/shopOwner/ShopOwnerStaff';
+import { ShopOwnerOffers } from '../pages/shopOwner/ShopOwnerOffers';
+import { ShopOwnerReports } from '../pages/shopOwner/ShopOwnerReports';
+import { ShopOwnerSettings } from '../pages/shopOwner/ShopOwnerSettings';
 
 // Admin Pages
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
@@ -45,6 +54,15 @@ import { AdminCoupons } from '../pages/admin/AdminCoupons';
 import { AdminUsers } from '../pages/admin/AdminUsers';
 import { AdminComplaints } from '../pages/admin/AdminComplaints';
 import { AdminReports } from '../pages/admin/AdminReports';
+import { AdminBookings } from '../pages/admin/AdminBookings';
+import { AdminOrders } from '../pages/admin/AdminOrders';
+import { AdminPayments } from '../pages/admin/AdminPayments';
+import { AdminReviews } from '../pages/admin/AdminReviews';
+import { AdminProducts } from '../pages/admin/AdminProducts';
+import { AdminPackages } from '../pages/admin/AdminPackages';
+import { AdminDeliveries } from '../pages/admin/AdminDeliveries';
+import { AdminCommission } from '../pages/admin/AdminCommission';
+import { AdminSettings } from '../pages/admin/AdminSettings';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -158,12 +176,21 @@ export const AppRoutes: React.FC = () => {
       >
         <Route path="dashboard" element={<ShopOwnerDashboard />} />
         <Route path="kanban" element={<ShopOwnerKanban />} />
-        <Route path="studio" element={<ShopOwnerStudio />} />
-        <Route path="packages" element={<ShopOwnerPackages />} />
+        <Route path="orders" element={<ShopOwnerOrders />} />
         <Route path="bookings" element={<ShopOwnerBookings />} />
         <Route path="proofs" element={<ShopOwnerProofs />} />
+        <Route path="production" element={<ShopOwnerProduction />} />
+        <Route path="studio" element={<ShopOwnerStudio />} />
+        <Route path="packages" element={<ShopOwnerPackages />} />
+        <Route path="products" element={<ShopOwnerProducts />} />
         <Route path="inventory" element={<ShopOwnerInventory />} />
+        <Route path="staff" element={<ShopOwnerStaff />} />
+        <Route path="offers" element={<ShopOwnerOffers />} />
+        <Route path="customers" element={<ShopOwnerCustomers />} />
+        <Route path="reviews" element={<ShopOwnerReviews />} />
+        <Route path="reports" element={<ShopOwnerReports />} />
         <Route path="revenue" element={<ShopOwnerRevenue />} />
+        <Route path="settings" element={<ShopOwnerSettings />} />
       </Route>
 
       {/* Super Admin Master Portal */}
@@ -180,8 +207,17 @@ export const AppRoutes: React.FC = () => {
         <Route path="categories" element={<AdminCategories />} />
         <Route path="coupons" element={<AdminCoupons />} />
         <Route path="users" element={<AdminUsers />} />
+        <Route path="products" element={<AdminProducts />} />
+        <Route path="packages" element={<AdminPackages />} />
+        <Route path="bookings" element={<AdminBookings />} />
+        <Route path="orders" element={<AdminOrders />} />
+        <Route path="payments" element={<AdminPayments />} />
+        <Route path="commission" element={<AdminCommission />} />
+        <Route path="reviews" element={<AdminReviews />} />
         <Route path="complaints" element={<AdminComplaints />} />
+        <Route path="deliveries" element={<AdminDeliveries />} />
         <Route path="reports" element={<AdminReports />} />
+        <Route path="settings" element={<AdminSettings />} />
       </Route>
 
       {/* Fallback */}

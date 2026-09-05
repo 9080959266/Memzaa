@@ -57,28 +57,24 @@ export const AdminDashboard: React.FC = () => {
   }
 
   const stats = data?.stats || {
-    totalCustomers: 128,
-    totalShopOwners: 24,
-    totalStudios: 18,
-    totalOrders: 95,
-    totalBookings: 48,
-    totalRevenue: 545000,
-    platformCommission: 54500,
-    pendingApprovals: 2,
-    pendingPayments: 28400,
-    activeUsers: 160
+    totalCustomers: 0,
+    totalShopOwners: 0,
+    totalStudios: 0,
+    totalProducts: 0,
+    totalPackages: 0,
+    totalOrders: 0,
+    totalBookings: 0,
+    totalRevenue: 0,
+    platformCommission: 0,
+    pendingApprovals: 0,
+    pendingComplaints: 0,
+    refunds: 0,
+    pendingPayments: 0,
+    activeUsers: 0
   };
 
-  const revenueAnalytics = data?.revenueAnalytics || [
-    { month: 'Apr', totalRevenue: 180000, commission: 18000 },
-    { month: 'May', totalRevenue: 240000, commission: 24000 },
-    { month: 'Jun', totalRevenue: 310000, commission: 31000 },
-    { month: 'Jul', totalRevenue: 390000, commission: 39000 },
-    { month: 'Aug', totalRevenue: 460000, commission: 46000 },
-    { month: 'Sep', totalRevenue: 545000, commission: 54500 }
-  ];
-
-  const maxPlatformRev = Math.max(...revenueAnalytics.map((d: any) => d.totalRevenue));
+  const revenueAnalytics = data?.revenueAnalytics || [];
+  const maxPlatformRev = Math.max(1, ...revenueAnalytics.map((d: any) => d.totalRevenue || 1));
 
   return (
     <div className="space-y-8">
@@ -91,14 +87,14 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 1. KEY PLATFORM KPI METRIC CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 1. KEY PLATFORM KPI METRIC CARDS - ALL 11 METRICS */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {/* Total GMV Revenue */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
-          <span className="text-xs text-slate-400 font-medium">Total Platform Volume (GMV)</span>
+          <span className="text-xs text-slate-400 font-medium">Total Platform Volume</span>
           <p className="text-2xl font-black text-white font-mono">₹{stats.totalRevenue.toLocaleString('en-IN')}</p>
           <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> +32% YoY Growth
+            <TrendingUp className="w-3 h-3" /> Real Paid Volume
           </span>
         </div>
 
@@ -109,18 +105,74 @@ export const AdminDashboard: React.FC = () => {
           <span className="text-[10px] text-purple-300 font-semibold">Net Platform Revenue</span>
         </div>
 
-        {/* Total Bookings & Orders */}
+        {/* Total Customers */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
-          <span className="text-xs text-slate-400 font-medium">Bookings & Orders</span>
-          <p className="text-2xl font-black text-amber-400">{stats.totalBookings + stats.totalOrders}</p>
-          <span className="text-[10px] text-slate-400">{stats.totalBookings} Shoots • {stats.totalOrders} Orders</span>
+          <span className="text-xs text-slate-400 font-medium">Total Customers</span>
+          <p className="text-2xl font-black text-sky-400">{stats.totalCustomers}</p>
+          <span className="text-[10px] text-slate-400">Registered Shoppers</span>
         </div>
 
-        {/* Active Partners & Studios */}
+        {/* Total Shop Owners */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
-          <span className="text-xs text-slate-400 font-medium">Verified Studios</span>
+          <span className="text-xs text-slate-400 font-medium">Total Shop Owners</span>
+          <p className="text-2xl font-black text-amber-400">{stats.totalShopOwners}</p>
+          <span className="text-[10px] text-slate-400">Studio Partners</span>
+        </div>
+
+        {/* Total Studios & Pending Approvals */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
+          <span className="text-xs text-slate-400 font-medium">Total Studios</span>
           <p className="text-2xl font-black text-cyan-400">{stats.totalStudios}</p>
-          <span className="text-[10px] text-cyan-300 font-semibold">{stats.pendingApprovals} Pending Verification</span>
+          <span className="text-[10px] text-cyan-300 font-semibold">{stats.pendingApprovals} Pending Approvals</span>
+        </div>
+
+        {/* Total Products */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
+          <span className="text-xs text-slate-400 font-medium">Physical Keepsakes</span>
+          <p className="text-2xl font-black text-indigo-400">{stats.totalProducts}</p>
+          <span className="text-[10px] text-slate-400">Frames, Albums, Mugs</span>
+        </div>
+
+        {/* Total Packages */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
+          <span className="text-xs text-slate-400 font-medium">Photoshoot Packages</span>
+          <p className="text-2xl font-black text-pink-400">{stats.totalPackages}</p>
+          <span className="text-[10px] text-slate-400">Studio Catalogues</span>
+        </div>
+
+        {/* Total Bookings */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
+          <span className="text-xs text-slate-400 font-medium">Total Bookings</span>
+          <p className="text-2xl font-black text-emerald-400">{stats.totalBookings}</p>
+          <span className="text-[10px] text-slate-400">Photoshoot Sessions</span>
+        </div>
+
+        {/* Total Orders */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
+          <span className="text-xs text-slate-400 font-medium">Total Orders</span>
+          <p className="text-2xl font-black text-violet-400">{stats.totalOrders}</p>
+          <span className="text-[10px] text-slate-400">Physical Products Placed</span>
+        </div>
+
+        {/* Pending Complaints */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
+          <span className="text-xs text-slate-400 font-medium">Pending Complaints</span>
+          <p className="text-2xl font-black text-amber-300">{stats.pendingComplaints}</p>
+          <span className="text-[10px] text-amber-400 font-semibold">{stats.totalComplaints || 0} Total Tickets</span>
+        </div>
+
+        {/* Refunds */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
+          <span className="text-xs text-slate-400 font-medium">Refunded Payments</span>
+          <p className="text-2xl font-black text-rose-400">{stats.refunds}</p>
+          <span className="text-[10px] text-rose-300 font-semibold">Processed Refunds</span>
+        </div>
+
+        {/* Active Accounts */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2">
+          <span className="text-xs text-slate-400 font-medium">Active Accounts</span>
+          <p className="text-2xl font-black text-teal-400">{stats.activeUsers}</p>
+          <span className="text-[10px] text-teal-300 font-semibold">Verified Users</span>
         </div>
       </div>
 

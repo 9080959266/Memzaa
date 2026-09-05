@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { 
   getPackages, 
   getPackageById, 
+  getPackagesByStudio,
   createPackage, 
   updatePackage, 
   deletePackage 
@@ -12,6 +13,7 @@ import { authorizeRoles } from '../middleware/roles.js';
 const router = Router();
 
 router.get('/', getPackages);
+router.get('/studio/:studioId', getPackagesByStudio);
 router.get('/:id', getPackageById);
 router.post('/', authenticateJWT, authorizeRoles('shop_owner', 'admin'), createPackage);
 router.put('/:id', authenticateJWT, authorizeRoles('shop_owner', 'admin'), updatePackage);

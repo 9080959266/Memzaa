@@ -8,11 +8,22 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const mongodb_memory_server_1 = require("mongodb-memory-server");
 let mongoMemoryServer = null;
 const connectDB = async () => {
+    // If already connected, do not attempt to reconnect
+    if (mongoose_1.default.connection.readyState === 1) {
+        return;
+    }
+    // If currently connecting, wait for it
+    if (mongoose_1.default.connection.readyState === 2) {
+        await new Promise((resolve) => {
+            mongoose_1.default.connection.once('connected', () => resolve());
+        });
+        return;
+    }
     const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/memora_db';
     try {
-        // Attempt connecting to the configured MongoDB URI with a short timeout
+        // Attempt connecting to the configured MongoDB URI with a 2-second timeout
         await mongoose_1.default.connect(uri, {
-            serverSelectionTimeoutMS: 2500,
+            serverSelectionTimeoutMS: 2000,
         });
         console.log(`✅ MongoDB connected successfully to ${mongoose_1.default.connection.host}/${mongoose_1.default.connection.name}`);
     }
@@ -20,7 +31,9 @@ const connectDB = async () => {
         console.warn(`⚠️ Could not connect to primary MongoDB at ${uri}: ${err.message}`);
         console.log('🔄 Spinning up embedded in-memory MongoDB server for seamless zero-config local execution...');
         try {
-            mongoMemoryServer = await mongodb_memory_server_1.MongoMemoryServer.create();
+            if (!mongoMemoryServer) {
+                mongoMemoryServer = await mongodb_memory_server_1.MongoMemoryServer.create();
+            }
             const memoryUri = mongoMemoryServer.getUri();
             await mongoose_1.default.connect(memoryUri);
             console.log(`✅ Embedded In-Memory MongoDB connected at ${memoryUri}`);
@@ -33,9 +46,12 @@ const connectDB = async () => {
 };
 exports.connectDB = connectDB;
 const disconnectDB = async () => {
-    await mongoose_1.default.disconnect();
+    if (mongoose_1.default.connection.readyState !== 0) {
+        await mongoose_1.default.disconnect();
+    }
     if (mongoMemoryServer) {
         await mongoMemoryServer.stop();
+        mongoMemoryServer = null;
     }
 };
 exports.disconnectDB = disconnectDB;

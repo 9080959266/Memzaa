@@ -9,11 +9,20 @@
     "start": "node dist/server.js",
     "seed": "tsx src/seeds/seed.ts"
   },
-  "keywords": ["memora", "photography", "booking", "ecommerce", "express", "typescript", "mongodb"],
+  "keywords": [
+    "memora",
+    "photography",
+    "booking",
+    "ecommerce",
+    "express",
+    "typescript",
+    "mongodb"
+  ],
   "author": "MEMORA Team",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.11.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
@@ -22,6 +31,7 @@
     "mongoose": "^8.9.5",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
+    "razorpay": "^2.9.8",
     "zod": "^3.24.1"
   },
   "devDependencies": {

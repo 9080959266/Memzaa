@@ -47,7 +47,10 @@ const CartItemCustomizationSchema = new mongoose_1.Schema({
     previewMockup: { type: String }
 });
 const CartItemSchema = new mongoose_1.Schema({
-    productId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Product', required: true },
+    itemType: { type: String, enum: ['product', 'package'], default: 'product' },
+    productId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Product', required: false },
+    packageId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Package', required: false },
+    studioId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Studio', required: false },
     quantity: { type: Number, required: true, min: 1, default: 1 },
     unitPrice: { type: Number, required: true, min: 0 },
     customization: CartItemCustomizationSchema,

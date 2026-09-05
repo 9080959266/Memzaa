@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import { Product } from '../models/Product.js';
 import { Inventory } from '../models/Inventory.js';
@@ -8,7 +9,7 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
   try {
     const { category, search, minPrice, maxPrice, featured, sort = 'popular' } = req.query;
 
-    const filter: any = { isActive: true };
+    const filter: any = { isActive: { $ne: false } };
 
     if (category && category !== 'All') {
       filter.category = category;
@@ -53,8 +54,16 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 export const getProductBySlug = async (req: Request, res: Response): Promise<void> => {
   try {
     const { slug } = req.params;
+    const isObjectId = mongoose.Types.ObjectId.isValid(slug);
 
-    const product = await Product.findOne({ slug, isActive: true });
+    const product = await Product.findOne({
+      $or: [
+        { slug },
+        ...(isObjectId ? [{ _id: slug }] : [])
+      ],
+      isActive: { $ne: false }
+    });
+
     if (!product) {
       res.status(404).json({ success: false, message: 'Product not found' });
       return;
@@ -66,7 +75,7 @@ export const getProductBySlug = async (req: Request, res: Response): Promise<voi
     const relatedProducts = await Product.find({ 
       category: product.category, 
       _id: { $ne: product._id }, 
-      isActive: true 
+      isActive: { $ne: false } 
     }).limit(4);
 
     res.json({

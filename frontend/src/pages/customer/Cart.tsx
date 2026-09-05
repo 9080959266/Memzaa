@@ -81,8 +81,17 @@ export const Cart: React.FC = () => {
         {/* Left Side: Cart Item List */}
         <div className="lg:col-span-8 space-y-4">
           {cart.items.map((item) => {
+            const isPackage = item.itemType === 'package' || !!item.packageId;
+            const pkg = item.packageId;
             const product = item.productId;
             const custom = item.customization;
+
+            const title = isPackage ? (pkg?.title || 'Photoshoot Package') : (product?.title || 'Custom Photo Item');
+            const category = isPackage ? (pkg?.categoryId?.name || pkg?.category || 'Photoshoot Package') : (product?.category || 'Photo Keepsake');
+            const thumbnail = isPackage 
+              ? (pkg?.bannerImage || pkg?.thumbnail || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=200&q=80')
+              : (custom?.uploadedPhoto || product?.thumbnail || 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=200&q=80');
+            const studioName = isPackage ? (pkg?.studioId?.name || item.studioId?.name) : null;
 
             return (
               <div
@@ -90,24 +99,38 @@ export const Cart: React.FC = () => {
                 className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
               >
                 <div className="flex items-start gap-4">
-                  {/* Custom Photo Preview Thumbnail */}
+                  {/* Item Preview Thumbnail */}
                   <div className="relative w-20 h-24 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200">
                     <img
-                      src={custom?.uploadedPhoto || product?.thumbnail || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=200&q=80'}
-                      alt={product?.title}
+                      src={thumbnail}
+                      alt={title}
                       className="w-full h-full object-cover"
                     />
-                    {custom?.uploadedPhoto && (
+                    {isPackage ? (
                       <span className="absolute bottom-1 right-1 bg-amber-500 text-slate-950 text-[8px] font-black px-1 rounded">
+                        PACKAGE
+                      </span>
+                    ) : custom?.uploadedPhoto ? (
+                      <span className="absolute bottom-1 right-1 bg-purple-600 text-white text-[8px] font-black px-1 rounded">
                         CUSTOM
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Details */}
                   <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-slate-900">{product?.title || 'Custom Photo Item'}</h3>
-                    <span className="text-[10px] text-amber-700 font-semibold block">{product?.category}</span>
+                    <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full inline-block mb-1 ${
+                      isPackage
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                        : 'bg-purple-100 text-purple-900 border border-purple-300'
+                    }`}>
+                      {isPackage ? '📷 Photoshoot Package' : '📦 Photo Keepsake'}
+                    </span>
+                    <h3 className="text-sm font-bold text-slate-900">{title}</h3>
+                    {studioName && (
+                      <p className="text-[11px] text-slate-500">Studio: <strong className="text-slate-700">{studioName}</strong></p>
+                    )}
+                    <span className="text-[10px] text-amber-700 font-semibold block">{category}</span>
 
                     {/* Custom Attributes */}
                     {custom && (

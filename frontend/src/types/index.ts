@@ -161,7 +161,10 @@ export interface ICartItemCustomization {
 
 export interface ICartItem {
   _id: string;
-  productId: any;
+  itemType?: 'product' | 'package';
+  productId?: any;
+  packageId?: any;
+  studioId?: any;
   quantity: number;
   unitPrice: number;
   customization?: ICartItemCustomization;

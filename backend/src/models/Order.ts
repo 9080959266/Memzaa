@@ -16,7 +16,10 @@ export type OrderWorkflowStatus =
   | 'CANCELLED';
 
 export interface IOrderItem {
-  productId: Types.ObjectId;
+  itemType?: 'product' | 'package';
+  productId?: Types.ObjectId;
+  packageId?: Types.ObjectId;
+  studioId?: Types.ObjectId;
   title: string;
   category: string;
   thumbnail: string;
@@ -68,10 +71,13 @@ export interface IOrder extends Document {
 }
 
 const OrderItemSchema = new Schema({
-  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  itemType: { type: String, enum: ['product', 'package'], default: 'product' },
+  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: false },
+  packageId: { type: Schema.Types.ObjectId, ref: 'Package', required: false },
+  studioId: { type: Schema.Types.ObjectId, ref: 'Studio', required: false },
   title: { type: String, required: true },
   category: { type: String, required: true },
-  thumbnail: { type: String, required: true },
+  thumbnail: { type: String, default: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=400&q=80' },
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true },
   customization: {

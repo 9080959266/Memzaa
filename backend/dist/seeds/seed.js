@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.seedDatabase = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const db_js_1 = require("../config/db.js");
@@ -21,11 +22,16 @@ const Invoice_js_1 = require("../models/Invoice.js");
 const Coupon_js_1 = require("../models/Coupon.js");
 const Review_js_1 = require("../models/Review.js");
 const Notification_js_1 = require("../models/Notification.js");
+const Payment_js_1 = require("../models/Payment.js");
+const Complaint_js_1 = require("../models/Complaint.js");
+const Delivery_js_1 = require("../models/Delivery.js");
 dotenv_1.default.config();
-const seedDatabase = async () => {
+const seedDatabase = async (disconnectAfterSeed = false) => {
     try {
         console.log('🌱 Starting MEMORA Database Seed...');
-        await (0, db_js_1.connectDB)();
+        if (mongoose_1.default.connection.readyState !== 1) {
+            await (0, db_js_1.connectDB)();
+        }
         // Clear existing collections
         await Promise.all([
             User_js_1.User.deleteMany({}),
@@ -41,7 +47,10 @@ const seedDatabase = async () => {
             Invoice_js_1.Invoice.deleteMany({}),
             Coupon_js_1.Coupon.deleteMany({}),
             Review_js_1.Review.deleteMany({}),
-            Notification_js_1.Notification.deleteMany({})
+            Notification_js_1.Notification.deleteMany({}),
+            Payment_js_1.Payment.deleteMany({}),
+            Complaint_js_1.Complaint.deleteMany({}),
+            Delivery_js_1.Delivery.deleteMany({})
         ]);
         console.log('🧹 Cleaned existing database tables.');
         // 1. Create Users
@@ -880,20 +889,193 @@ const seedDatabase = async () => {
             type: 'proof',
             link: '/proofs'
         });
-        console.log('✅ Created Demo Notifications.');
+        // 13. Payments
+        await Payment_js_1.Payment.create({
+            paymentId: 'MEM-PAY-1001',
+            bookingId: booking1._id,
+            userId: customerUser._id,
+            amount: booking1.advanceAmount,
+            currency: 'INR',
+            gateway: 'razorpay',
+            gatewayPaymentId: 'pay_RZP1001Chennai',
+            gatewayOrderId: 'order_RZP1001Chennai',
+            status: 'success',
+            receiptNumber: 'RCPT-MEM-1001'
+        });
+        await Payment_js_1.Payment.create({
+            paymentId: 'MEM-PAY-1002',
+            orderId: order1._id,
+            userId: customerUser._id,
+            amount: order1.totalAmount,
+            currency: 'INR',
+            gateway: 'razorpay',
+            gatewayPaymentId: 'pay_RZP1002Orders',
+            gatewayOrderId: 'order_RZP1002Orders',
+            status: 'success',
+            receiptNumber: 'RCPT-MEM-1002'
+        });
+        await Payment_js_1.Payment.create({
+            paymentId: 'MEM-PAY-1003',
+            bookingId: booking2._id,
+            userId: customerUser._id,
+            amount: booking2.advanceAmount,
+            currency: 'INR',
+            gateway: 'razorpay',
+            gatewayPaymentId: 'pay_RZP1003Shoots',
+            gatewayOrderId: 'order_RZP1003Shoots',
+            status: 'success',
+            receiptNumber: 'RCPT-MEM-1003'
+        });
+        await Payment_js_1.Payment.create({
+            paymentId: 'MEM-PAY-RFND-1004',
+            userId: customerUser._id,
+            amount: 4500,
+            currency: 'INR',
+            gateway: 'razorpay',
+            gatewayPaymentId: 'pay_RZP1004Refunded',
+            gatewayOrderId: 'order_RZP1004Refunded',
+            status: 'refunded',
+            receiptNumber: 'RCPT-MEM-RFND-1004'
+        });
+        console.log('✅ Created Demo Payments (including refund).');
+        // 14. Complaints & Dispute Tickets
+        await Complaint_js_1.Complaint.create({
+            ticketId: 'MEM-TKT-301',
+            userId: customerUser._id,
+            targetType: 'booking',
+            targetId: booking1._id,
+            subject: 'Additional skin retouching requested for baby portfolio',
+            description: 'The lighting was excellent, but we would love slightly warmer skin tones on images #14 and #18 from the Besant Nagar shoot.',
+            priority: 'medium',
+            status: 'open',
+            messages: [
+                {
+                    senderId: customerUser._id,
+                    senderRole: 'customer',
+                    senderName: customerUser.name,
+                    message: 'Could you please re-export images 14 and 18 with a slightly warmer sunset hue?',
+                    timestamp: new Date()
+                }
+            ]
+        });
+        await Complaint_js_1.Complaint.create({
+            ticketId: 'MEM-TKT-302',
+            userId: customerUser._id,
+            targetType: 'order',
+            targetId: order1._id,
+            subject: 'Delivery address confirmation query',
+            description: 'Customer requested verification of the apartment tower number for courier dispatch.',
+            priority: 'low',
+            status: 'resolved',
+            resolution: 'Verified with Blue Dart courier desk: Tower B, Flat 402 updated successfully.',
+            messages: [
+                {
+                    senderId: customerUser._id,
+                    senderRole: 'customer',
+                    senderName: customerUser.name,
+                    message: 'Please verify the gate code and tower number.',
+                    timestamp: new Date()
+                }
+            ]
+        });
+        console.log('✅ Created Demo Complaints & Disputes.');
+        // 15. Logistics Deliveries
+        await Delivery_js_1.Delivery.create({
+            orderId: order1._id,
+            trackingNumber: 'BLUEDART-IND-908234',
+            courierName: 'Blue Dart Air Express',
+            senderAddress: {
+                name: 'Lumière Photo Lab',
+                phone: '+91 98840 98765',
+                street: '45, Cathedral Road',
+                city: 'Chennai',
+                state: 'Tamil Nadu',
+                pincode: '600086'
+            },
+            deliveryAddress: {
+                fullName: 'Priya Ramanathan',
+                phone: '+91 98401 23456',
+                street: '14, 4th Main Road, Besant Nagar',
+                city: 'Chennai',
+                state: 'Tamil Nadu',
+                pincode: '600090'
+            },
+            estimatedDeliveryDate: new Date(Date.now() + 2 * 86400000),
+            status: 'out_for_delivery',
+            trackingTimeline: [
+                {
+                    stage: 'Ready',
+                    location: 'Lumière Lab, Chennai',
+                    description: 'Package boxed with premium bubble lining',
+                    timestamp: new Date(Date.now() - 48 * 3600000)
+                },
+                {
+                    stage: 'Dispatched',
+                    location: 'Central Logistics Hub, Chennai',
+                    description: 'Handed over to Blue Dart Express Courier',
+                    timestamp: new Date(Date.now() - 24 * 3600000)
+                },
+                {
+                    stage: 'Out for Delivery',
+                    location: 'Adyar Delivery Center, Chennai',
+                    description: 'Courier executive assigned: Vignesh K (+91 98400 11223)',
+                    timestamp: new Date(Date.now() - 3 * 3600000)
+                }
+            ]
+        });
+        console.log('✅ Created Demo Deliveries.');
+        // 16. Admin Event Notifications
+        await Notification_js_1.Notification.create({
+            userId: adminUser._id,
+            title: 'New Customer Registered 👤',
+            message: 'Priya Ramanathan created a new verified customer account.',
+            type: 'system',
+            link: '/admin/users'
+        });
+        await Notification_js_1.Notification.create({
+            userId: adminUser._id,
+            title: 'Studio Application Submitted 📸',
+            message: 'Vogue & Canvas Studios submitted registration for verification in Mumbai.',
+            type: 'system',
+            link: '/admin/studios'
+        });
+        await Notification_js_1.Notification.create({
+            userId: adminUser._id,
+            title: 'New Booking Created 📅',
+            message: `Booking #${booking1.bookingId} confirmed with advance payment of ₹${booking1.advanceAmount}.`,
+            type: 'booking',
+            link: '/admin/bookings'
+        });
+        await Notification_js_1.Notification.create({
+            userId: adminUser._id,
+            title: 'New Keepsake Order Placed 📦',
+            message: `Order #${order1.orderId} placed for ₹${order1.totalAmount}.`,
+            type: 'order',
+            link: '/admin/orders'
+        });
+        await Notification_js_1.Notification.create({
+            userId: adminUser._id,
+            title: 'Payment Verified via Razorpay 💳',
+            message: `Payment #MEM-PAY-1001 verified for booking #${booking1.bookingId}.`,
+            type: 'payment',
+            link: '/admin/payments'
+        });
+        console.log('✅ Created Admin Event Notifications.');
         console.log('🎉 MEMORA Database seeding completed successfully!');
     }
     catch (error) {
         console.error('❌ Error during seed:', error);
     }
     finally {
-        await (0, db_js_1.disconnectDB)();
+        if (disconnectAfterSeed) {
+            await (0, db_js_1.disconnectDB)();
+        }
     }
 };
 exports.seedDatabase = seedDatabase;
 // If run directly via tsx
-if (process.argv[1]?.includes('seed.ts')) {
-    (0, exports.seedDatabase)().then(() => {
+if (process.argv[1]?.includes('seed.ts') || process.argv[1]?.includes('seed.js')) {
+    (0, exports.seedDatabase)(true).then(() => {
         process.exit(0);
     });
 }

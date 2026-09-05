@@ -8,6 +8,7 @@ export interface IPhotoshootCategory extends Document {
   icon: string;
   banner: string;
   featured: boolean;
+  isActive: boolean;
   order: number;
 }
 
@@ -20,6 +21,7 @@ const PhotoshootCategorySchema = new Schema<IPhotoshootCategory>(
     icon: { type: String, default: 'camera' },
     banner: { type: String, default: '' },
     featured: { type: Boolean, default: true },
+    isActive: { type: Boolean, default: true, index: true },
     order: { type: Number, default: 0 }
   },
   { timestamps: true }

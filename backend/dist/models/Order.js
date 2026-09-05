@@ -36,10 +36,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Order = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const OrderItemSchema = new mongoose_1.Schema({
-    productId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Product', required: true },
+    itemType: { type: String, enum: ['product', 'package'], default: 'product' },
+    productId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Product', required: false },
+    packageId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Package', required: false },
+    studioId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Studio', required: false },
     title: { type: String, required: true },
     category: { type: String, required: true },
-    thumbnail: { type: String, required: true },
+    thumbnail: { type: String, default: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=400&q=80' },
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: true },
     customization: {

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateProfile = exports.getMe = exports.googleAuth = exports.login = exports.register = void 0;
+exports.deleteAddress = exports.addAddress = exports.updateProfile = exports.getMe = exports.googleAuth = exports.login = exports.register = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_js_1 = require("../models/User.js");
@@ -279,3 +279,67 @@ const updateProfile = async (req, res) => {
     }
 };
 exports.updateProfile = updateProfile;
+const addAddress = async (req, res) => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ success: false, message: 'Not authenticated.' });
+            return;
+        }
+        const { label = 'Home', fullName, phone, street, city, state, pincode, isDefault = false } = req.body;
+        const user = await User_js_1.User.findById(req.user.id);
+        if (!user) {
+            res.status(404).json({ success: false, message: 'User not found.' });
+            return;
+        }
+        if (!user.addresses)
+            user.addresses = [];
+        if (isDefault) {
+            user.addresses.forEach((a) => (a.isDefault = false));
+        }
+        user.addresses.push({
+            label,
+            fullName,
+            phone,
+            street,
+            city,
+            state,
+            pincode,
+            isDefault: isDefault || user.addresses.length === 0,
+        });
+        await user.save();
+        res.status(201).json({
+            success: true,
+            message: 'Address added successfully',
+            addresses: user.addresses,
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+exports.addAddress = addAddress;
+const deleteAddress = async (req, res) => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ success: false, message: 'Not authenticated.' });
+            return;
+        }
+        const { addressId } = req.params;
+        const user = await User_js_1.User.findById(req.user.id);
+        if (!user) {
+            res.status(404).json({ success: false, message: 'User not found.' });
+            return;
+        }
+        user.addresses = (user.addresses || []).filter((a) => a._id?.toString() !== addressId);
+        await user.save();
+        res.json({
+            success: true,
+            message: 'Address removed successfully',
+            addresses: user.addresses,
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+exports.deleteAddress = deleteAddress;

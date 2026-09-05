@@ -211,23 +211,36 @@ export const Checkout: React.FC = () => {
             <h3 className="text-sm font-bold text-slate-900">Order Items ({cart.items.length})</h3>
 
             <div className="max-h-60 overflow-y-auto space-y-3 divide-y divide-slate-100">
-              {cart.items.map((item) => (
-                <div key={item._id} className="pt-2 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <img
-                      src={item.customization?.uploadedPhoto || item.productId?.thumbnail}
-                      alt=""
-                      className="w-10 h-10 rounded-lg object-cover border border-slate-200 flex-shrink-0"
-                    />
-                    <div>
-                      <p className="font-bold text-slate-900 line-clamp-1">{item.productId?.title}</p>
-                      <p className="text-[10px] text-slate-500">Qty: {item.quantity}</p>
+                {cart.items.map((item) => {
+                  const isPackage = item.itemType === 'package' || !!item.packageId;
+                  const title = isPackage ? (item.packageId?.title || 'Photoshoot Package') : (item.productId?.title || 'Custom Keepsake');
+                  const thumbnail = isPackage 
+                    ? (item.packageId?.bannerImage || item.packageId?.thumbnail || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=100&q=80')
+                    : (item.customization?.uploadedPhoto || item.productId?.thumbnail || 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=100&q=80');
+
+                  return (
+                    <div key={item._id} className="pt-2 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={thumbnail}
+                          alt=""
+                          className="w-10 h-10 rounded-lg object-cover border border-slate-200 flex-shrink-0"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[8px] font-bold px-1 rounded ${isPackage ? 'bg-amber-100 text-amber-900' : 'bg-purple-100 text-purple-900'}`}>
+                              {isPackage ? 'Package' : 'Product'}
+                            </span>
+                            <p className="font-bold text-slate-900 line-clamp-1">{title}</p>
+                          </div>
+                          <p className="text-[10px] text-slate-500">Qty: {item.quantity}</p>
+                        </div>
+                      </div>
+                      <span className="font-bold text-slate-900">₹{item.itemTotal.toLocaleString('en-IN')}</span>
                     </div>
-                  </div>
-                  <span className="font-bold text-slate-900">₹{item.itemTotal.toLocaleString('en-IN')}</span>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
 
             <div className="space-y-2 border-t border-slate-200 pt-3 text-xs text-slate-600">
               <div className="flex justify-between">

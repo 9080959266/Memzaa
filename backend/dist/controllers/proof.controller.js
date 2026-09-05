@@ -4,6 +4,7 @@ exports.reviewProof = exports.createProof = exports.getStudioProofs = exports.ge
 const Proof_js_1 = require("../models/Proof.js");
 const PhotoJob_js_1 = require("../models/PhotoJob.js");
 const Studio_js_1 = require("../models/Studio.js");
+const Order_js_1 = require("../models/Order.js");
 const Notification_js_1 = require("../models/Notification.js");
 const getMyProofs = async (req, res) => {
     try {
@@ -53,12 +54,41 @@ const getStudioProofs = async (req, res) => {
 exports.getStudioProofs = getStudioProofs;
 const createProof = async (req, res) => {
     try {
-        const { photoJobId, previewUrls, highResUrls, title } = req.body;
-        const photoJob = await PhotoJob_js_1.PhotoJob.findById(photoJobId);
+        const { photoJobId, orderId, bookingId, previewUrls, previewUrl, highResUrls, title } = req.body;
+        let photoJob = photoJobId ? await PhotoJob_js_1.PhotoJob.findById(photoJobId) : null;
+        if (!photoJob && (orderId || bookingId)) {
+            photoJob = await PhotoJob_js_1.PhotoJob.findOne({
+                $or: [
+                    ...(orderId ? [{ orderId }] : []),
+                    ...(bookingId ? [{ bookingId }] : [])
+                ]
+            });
+        }
+        if (!photoJob && req.user) {
+            const studio = await Studio_js_1.Studio.findOne({ ownerId: req.user.id });
+            if (studio) {
+                photoJob = await PhotoJob_js_1.PhotoJob.findOne({ studioId: studio._id }).sort({ createdAt: -1 });
+            }
+        }
+        if (!photoJob) {
+            const defaultStudio = await Studio_js_1.Studio.findOne();
+            if (defaultStudio) {
+                photoJob = await PhotoJob_js_1.PhotoJob.create({
+                    jobId: `MEM-JOB-${Math.floor(1000 + Math.random() * 9000)}`,
+                    title: title || 'Custom Photo Proof Job',
+                    studioId: defaultStudio._id,
+                    customerId: req.user?.id,
+                    stage: 'NEW_ORDER',
+                    priority: 'medium',
+                    notes: 'Auto-created for proof upload'
+                });
+            }
+        }
         if (!photoJob) {
             res.status(404).json({ success: false, message: 'Photo job not found' });
             return;
         }
+        const effectivePreviews = previewUrls || (previewUrl ? [previewUrl] : ['https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&q=80']);
         const proofSuffix = Math.floor(1000 + Math.random() * 9000);
         const proof = await Proof_js_1.Proof.create({
             proofId: `MEM-PRF-${proofSuffix}`,
@@ -67,13 +97,13 @@ const createProof = async (req, res) => {
             customerId: photoJob.customerId,
             version: (photoJob.proofVersion || 0) + 1,
             title: title || `${photoJob.title} - Draft Proof v${(photoJob.proofVersion || 0) + 1}`,
-            previewUrls,
-            highResUrls: highResUrls || previewUrls,
+            previewUrls: effectivePreviews,
+            highResUrls: highResUrls || effectivePreviews,
             status: 'pending_review'
         });
         photoJob.stage = 'PROOF_READY';
         photoJob.proofVersion = proof.version;
-        photoJob.latestProofUrl = previewUrls[0];
+        photoJob.latestProofUrl = effectivePreviews[0];
         photoJob.customerApprovalStatus = 'pending';
         await photoJob.save();
         // Customer Notification
@@ -98,7 +128,9 @@ exports.createProof = createProof;
 const reviewProof = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, customerFeedback, revisionRequests } = req.body; // status: 'approved' | 'changes_requested'
+        const status = req.body.status || 'approved';
+        const customerFeedback = req.body.customerFeedback || req.body.clientFeedback || 'Approved by customer';
+        const { revisionRequests } = req.body;
         const proof = await Proof_js_1.Proof.findById(id).populate('photoJobId');
         if (!proof) {
             res.status(404).json({ success: false, message: 'Proof not found' });
@@ -117,6 +149,21 @@ const reviewProof = async (req, res) => {
             if (status === 'approved') {
                 photoJob.stage = 'CUSTOMER_APPROVED';
                 photoJob.customerApprovalStatus = 'approved';
+                if (photoJob.orderId) {
+                    const order = await Order_js_1.Order.findById(photoJob.orderId);
+                    if (order) {
+                        order.currentStatus = 'CUSTOMER_APPROVED';
+                        const stepIndex = order.timeline.findIndex((t) => t.status === 'CUSTOMER_APPROVED');
+                        if (stepIndex !== -1) {
+                            for (let i = 0; i <= stepIndex; i++) {
+                                order.timeline[i].completed = true;
+                            }
+                            order.timeline[stepIndex].timestamp = new Date();
+                            order.timeline[stepIndex].description = 'Client approved color grading and digital retouching proof';
+                        }
+                        await order.save();
+                    }
+                }
             }
             else {
                 photoJob.stage = 'EDITING';

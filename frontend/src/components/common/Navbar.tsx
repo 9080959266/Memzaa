@@ -63,7 +63,7 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded font-semibold text-[11px] tracking-wide border border-pink-500/30">
               <Sparkles className="w-3 h-3 text-pink-400" />
-              MEMORAA LIVE
+              MEMORA LIVE
             </span>
             <span className="hidden sm:inline text-slate-400">
               India’s Leading Photography & Personalized Memories Platform

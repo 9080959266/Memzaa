@@ -32,6 +32,10 @@ const invoice_routes_js_1 = __importDefault(require("./routes/invoice.routes.js"
 const upload_routes_js_1 = __importDefault(require("./routes/upload.routes.js"));
 const shopowner_routes_js_1 = __importDefault(require("./routes/shopowner.routes.js"));
 const admin_routes_js_1 = __importDefault(require("./routes/admin.routes.js"));
+const photo_routes_js_1 = __importDefault(require("./routes/photo.routes.js"));
+const delivery_routes_js_1 = __importDefault(require("./routes/delivery.routes.js"));
+const staff_routes_js_1 = __importDefault(require("./routes/staff.routes.js"));
+const complaint_routes_js_1 = __importDefault(require("./routes/complaint.routes.js"));
 dotenv_1.default.config();
 const uploadsDir = path_1.default.resolve(process.cwd(), 'uploads');
 const app = (0, express_1.default)();
@@ -43,12 +47,29 @@ const startServer = async () => {
     const userCount = await User_js_1.User.countDocuments();
     if (userCount === 0) {
         console.log('📦 Database is empty. Auto-populating rich Indian photography marketplace demo data...');
-        await (0, seed_js_1.seedDatabase)();
+        await (0, seed_js_1.seedDatabase)(false);
     }
-    // Middleware
+    // Production & Local-Network CORS Configuration
+    const configuredClients = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map((s) => s.trim()) : [];
     app.use((0, cors_1.default)({
-        origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
-        credentials: true
+        origin: (origin, callback) => {
+            // Mobile applications, Expo, React Native CLI, curl, Postman have no Origin header
+            if (!origin)
+                return callback(null, true);
+            // Explicitly allowed domains in production
+            if (configuredClients.length === 0 || configuredClients.includes('*') || configuredClients.includes(origin)) {
+                return callback(null, true);
+            }
+            // Local development and physical real-device Wi-Fi testing (e.g. 192.168.x.x, 10.x.x.x, localhost)
+            const isLocalNetwork = /^(http:\/\/)?(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin);
+            if (isLocalNetwork) {
+                return callback(null, true);
+            }
+            return callback(null, true);
+        },
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'x-razorpay-signature']
     }));
     app.use(express_1.default.json({ limit: '30mb' }));
     app.use(express_1.default.urlencoded({ extended: true, limit: '30mb' }));
@@ -66,6 +87,7 @@ const startServer = async () => {
     app.use('/api/cart', cart_routes_js_1.default);
     app.use('/api/orders', order_routes_js_1.default);
     app.use('/api/photo-jobs', photojob_routes_js_1.default);
+    app.use('/api/photojobs', photojob_routes_js_1.default);
     app.use('/api/proofs', proof_routes_js_1.default);
     app.use('/api/payments', payment_routes_js_1.default);
     app.use('/api/reviews', review_routes_js_1.default);
@@ -76,6 +98,10 @@ const startServer = async () => {
     app.use('/api/upload', upload_routes_js_1.default);
     app.use('/api/seller', shopowner_routes_js_1.default);
     app.use('/api/admin', admin_routes_js_1.default);
+    app.use('/api/photos', photo_routes_js_1.default);
+    app.use('/api/deliveries', delivery_routes_js_1.default);
+    app.use('/api/staff', staff_routes_js_1.default);
+    app.use('/api/complaints', complaint_routes_js_1.default);
     // Health Check
     app.get('/api/health', (req, res) => {
         res.json({

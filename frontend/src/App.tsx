@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ToastProvider } from './context/ToastContext';
 import { AppRoutes } from './routes/AppRoutes';
 
 export function App() {
@@ -13,7 +14,9 @@ export function App() {
         <CartProvider>
           <WishlistProvider>
             <NotificationProvider>
-              <AppRoutes />
+              <ToastProvider>
+                <AppRoutes />
+              </ToastProvider>
             </NotificationProvider>
           </WishlistProvider>
         </CartProvider>

@@ -9,5 +9,5 @@ router.get('/', product_controller_js_1.getProducts);
 router.get('/:slug', product_controller_js_1.getProductBySlug);
 router.post('/', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner', 'admin'), product_controller_js_1.createProduct);
 router.put('/:id', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner', 'admin'), product_controller_js_1.updateProduct);
-router.delete('/:id', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('admin'), product_controller_js_1.deleteProduct);
+router.delete('/:id', auth_js_1.authenticateJWT, (0, roles_js_1.authorizeRoles)('shop_owner', 'admin'), product_controller_js_1.deleteProduct);
 exports.default = router;

@@ -12,9 +12,14 @@ export interface ICartItemCustomization {
   previewMockup?: string;
 }
 
+export type CartItemType = 'product' | 'package';
+
 export interface ICartItem {
   _id?: Types.ObjectId;
-  productId: Types.ObjectId;
+  itemType?: CartItemType;
+  productId?: Types.ObjectId;
+  packageId?: Types.ObjectId;
+  studioId?: Types.ObjectId;
   quantity: number;
   unitPrice: number;
   customization?: ICartItemCustomization;
@@ -46,7 +51,10 @@ const CartItemCustomizationSchema = new Schema({
 });
 
 const CartItemSchema = new Schema({
-  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  itemType: { type: String, enum: ['product', 'package'], default: 'product' },
+  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: false },
+  packageId: { type: Schema.Types.ObjectId, ref: 'Package', required: false },
+  studioId: { type: Schema.Types.ObjectId, ref: 'Studio', required: false },
   quantity: { type: Number, required: true, min: 1, default: 1 },
   unitPrice: { type: Number, required: true, min: 0 },
   customization: CartItemCustomizationSchema,

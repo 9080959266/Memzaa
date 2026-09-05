@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateQCChecklist = exports.customerSelectPhotos = exports.uploadJobPhotos = exports.updateJobStage = exports.getStudioKanbanJobs = void 0;
 const PhotoJob_js_1 = require("../models/PhotoJob.js");
 const Studio_js_1 = require("../models/Studio.js");
+const Order_js_1 = require("../models/Order.js");
+const Booking_js_1 = require("../models/Booking.js");
 const Notification_js_1 = require("../models/Notification.js");
 const getStudioKanbanJobs = async (req, res) => {
     try {
@@ -78,6 +80,27 @@ const updateJobStage = async (req, res) => {
         if (assignedEditor)
             job.assignedEditor = assignedEditor;
         await job.save();
+        // Synchronize linked Order timeline and status
+        if (stage && job.orderId) {
+            const order = await Order_js_1.Order.findById(job.orderId);
+            if (order) {
+                order.currentStatus = stage;
+                const stepIndex = order.timeline.findIndex(t => t.status === stage);
+                if (stepIndex !== -1) {
+                    for (let i = 0; i <= stepIndex; i++) {
+                        order.timeline[i].completed = true;
+                    }
+                    order.timeline[stepIndex].timestamp = new Date();
+                    if (notes)
+                        order.timeline[stepIndex].description = notes;
+                }
+                await order.save();
+            }
+        }
+        // Synchronize linked Booking status if completed
+        if (stage === 'COMPLETED' && job.bookingId) {
+            await Booking_js_1.Booking.findByIdAndUpdate(job.bookingId, { bookingStatus: 'completed' });
+        }
         // Customer Notification
         await Notification_js_1.Notification.create({
             userId: job.customerId,

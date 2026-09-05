@@ -34,9 +34,9 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
       name,
       slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       description,
-      image,
+      image: image || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=800&q=80',
       icon: icon || 'camera',
-      banner,
+      banner: banner || '',
       featured: featured ?? true,
       order: order || 0
     });
@@ -70,3 +70,46 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const deleteCategory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const category = await PhotoshootCategory.findByIdAndDelete(id);
+
+    if (!category) {
+      res.status(404).json({ success: false, message: 'Category not found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Category deleted successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const toggleCategoryStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const category = await PhotoshootCategory.findById(id);
+
+    if (!category) {
+      res.status(404).json({ success: false, message: 'Category not found' });
+      return;
+    }
+
+    category.isActive = !category.isActive;
+    await category.save();
+
+    res.json({
+      success: true,
+      message: `Category ${category.isActive ? 'activated' : 'deactivated'} successfully`,
+      category
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

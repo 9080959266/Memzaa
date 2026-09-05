@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Sparkles, 
   Search, 
@@ -8,12 +8,16 @@ import {
   ShoppingBag, 
   Layers, 
   Star, 
-  Check 
+  Check,
+  ShoppingCart,
+  CheckCircle2
 } from 'lucide-react';
 import api from '../../api/client';
 import { IProduct } from '../../types';
 import { ProductCustomizerModal } from '../../components/customer/ProductCustomizerModal';
 import { useWishlist } from '../../context/WishlistContext';
+import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 
 const PRODUCT_CATEGORIES = [
   'All',
@@ -43,6 +47,28 @@ export const Products: React.FC = () => {
   const [customizingProduct, setCustomizingProduct] = useState<IProduct | null>(null);
 
   const { toggleProduct, isProductInWishlist } = useWishlist();
+  const { addToCart } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [addingProdId, setAddingProdId] = useState<string | null>(null);
+  const [cartToastMsg, setCartToastMsg] = useState<string | null>(null);
+
+  const handleAddToCart = async (prod: IProduct) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    try {
+      setAddingProdId(prod._id);
+      await addToCart(prod._id, 1);
+      setCartToastMsg(`"${prod.title}" added to cart!`);
+      setTimeout(() => setCartToastMsg(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to add product to cart');
+    } finally {
+      setAddingProdId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -200,7 +226,7 @@ export const Products: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="p-5 pt-0 flex items-center justify-between border-t border-slate-100 mt-4">
+                <div className="p-5 pt-0 flex flex-col sm:flex-row sm:items-center justify-between border-t border-slate-100 mt-4 gap-3">
                   <div>
                     <span className="text-base font-black text-slate-900">₹{basePrice.toLocaleString('en-IN')}</span>
                     {prod.discountPrice && (
@@ -210,13 +236,30 @@ export const Products: React.FC = () => {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setCustomizingProduct(prod)}
-                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/20 flex items-center gap-1.5"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" /> Customize Now
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAddToCart(prod)}
+                      disabled={addingProdId === prod._id}
+                      className="bg-slate-900 hover:bg-slate-800 active:bg-slate-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      title="Add directly to cart"
+                    >
+                      {addingProdId === prod._id ? (
+                        <span className="animate-spin text-xs">⏳</span>
+                      ) : (
+                        <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
+                      )}
+                      Add to Cart
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomizingProduct(prod)}
+                      className="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 font-extrabold text-xs px-3.5 py-2 rounded-xl transition shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+                      title="Personalize with photo and engraving"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Customize
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -231,6 +274,17 @@ export const Products: React.FC = () => {
           onClose={() => setCustomizingProduct(null)}
           product={customizingProduct}
         />
+      )}
+
+      {/* Cart Toast Notification */}
+      {cartToastMsg && (
+        <div className="fixed bottom-6 right-6 bg-slate-950 text-white border border-amber-500/40 px-5 py-3.5 rounded-2xl shadow-2xl z-50 flex items-center gap-3 text-xs font-bold animate-bounce">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <span>{cartToastMsg}</span>
+          <Link to="/cart" className="ml-2 bg-amber-500 text-slate-950 px-3 py-1 rounded-lg font-extrabold hover:bg-amber-400 transition">
+            View Cart
+          </Link>
+        </div>
       )}
     </div>
   );

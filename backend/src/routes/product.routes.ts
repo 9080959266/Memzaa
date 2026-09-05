@@ -15,6 +15,6 @@ router.get('/', getProducts);
 router.get('/:slug', getProductBySlug);
 router.post('/', authenticateJWT, authorizeRoles('shop_owner', 'admin'), createProduct);
 router.put('/:id', authenticateJWT, authorizeRoles('shop_owner', 'admin'), updateProduct);
-router.delete('/:id', authenticateJWT, authorizeRoles('admin'), deleteProduct);
+router.delete('/:id', authenticateJWT, authorizeRoles('shop_owner', 'admin'), deleteProduct);
 
 export default router;

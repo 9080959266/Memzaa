@@ -29,8 +29,11 @@ export interface IStudio extends Document {
     close: string;
     workingDays: string[];
   };
+  blockedDates?: Date[];
+  facilities?: string[];
   verifiedStatus: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string;
+  isActive: boolean;
   bannerImage: string;
   logoImage: string;
   featured: boolean;
@@ -67,8 +70,11 @@ const StudioSchema = new Schema<IStudio>(
       close: { type: String, default: '09:00 PM' },
       workingDays: { type: [String], default: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] }
     },
+    blockedDates: [{ type: Date }],
+    facilities: [{ type: String }],
     verifiedStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved', index: true },
     rejectionReason: { type: String },
+    isActive: { type: Boolean, default: true, index: true },
     bannerImage: { type: String, default: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80' },
     logoImage: { type: String, default: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=300&q=80' },
     featured: { type: Boolean, default: false }

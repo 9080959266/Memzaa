@@ -1,17 +1,37 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-// Automatically choose local API endpoint depending on platform
+// Automatically choose the best backend host link depending on device & network
 const getBaseURL = () => {
+  // 1. Check if an explicit environment variable is set
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. If running inside Expo on a physical device over Wi-Fi
+  const debuggerHost = Constants.expoConfig?.hostUri;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(':')[0];
+    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+      return `http://${ip}:5000/api`;
+    }
+  }
+
+  // 3. Android Emulator fallback
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:5000/api';
   }
+
+  // 4. iOS Simulator, Web, or default localhost
   return 'http://localhost:5000/api';
 };
 
+export const BACKEND_URL = getBaseURL();
+
 const api = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: BACKEND_URL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
