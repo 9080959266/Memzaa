@@ -1,6 +1,22 @@
 import axios from 'axios';
 
-export const API_BASE = ((import.meta as any)?.env?.VITE_API_URL || '').replace(/\/+$/, '') + '/api';
+const rawBase = import.meta.env.VITE_API_URL || '';
+
+const getNormalizedBaseUrl = (): string => {
+  if (!rawBase || rawBase.trim() === '') {
+    return '/api';
+  }
+
+  let clean = rawBase.trim().replace(/\/+$/, '');
+
+  if (!clean.endsWith('/api')) {
+    clean = `${clean}/api`;
+  }
+
+  return clean;
+};
+
+export const API_BASE = getNormalizedBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -26,8 +42,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // If unauthorized on protected calls, we can gracefully clear stale token
-      // but avoid redirect loops
+      // Avoid redirect loops
     }
     return Promise.reject(error);
   }
