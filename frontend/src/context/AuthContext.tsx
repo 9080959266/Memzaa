@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+```tsx
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import api from '../api/client';
 import { IUser } from '../types';
 
@@ -17,17 +24,38 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<IUser | null>(null);
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem('memora_token') || localStorage.getItem('token')
+const getStoredUser = (): IUser | null => {
+  try {
+    const savedUser =
+      localStorage.getItem('memora_user') ||
+      localStorage.getItem('user');
+
+    return savedUser ? JSON.parse(savedUser) : null;
+  } catch {
+    return null;
+  }
+};
+
+const getStoredToken = (): string | null => {
+  return (
+    localStorage.getItem('memora_token') ||
+    localStorage.getItem('token') ||
+    null
   );
+};
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [user, setUser] = useState<IUser | null>(getStoredUser);
+
+  const [token, setToken] = useState<string | null>(getStoredToken);
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchMe = async () => {
-      const savedToken =
-        localStorage.getItem('memora_token') || localStorage.getItem('token');
+      const savedToken = getStoredToken();
 
       if (!savedToken) {
         setIsLoading(false);
@@ -40,19 +68,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const res = await api.get('/auth/me');
 
         if (res.data?.success && res.data?.user) {
-          setUser(res.data.user);
-        } else {
-          // Only clear session when backend explicitly says unauthorized.
-          setUser(null);
+          const freshUser = res.data.user;
+
+          setUser(freshUser);
+
+          localStorage.setItem(
+            'memora_user',
+            JSON.stringify(freshUser)
+          );
+
+          localStorage.setItem(
+            'user',
+            JSON.stringify(freshUser)
+          );
         }
+
+        // Do not clear local session for non-401 responses.
       } catch (error: any) {
         if (error?.response?.status === 401) {
           localStorage.removeItem('memora_token');
           localStorage.removeItem('token');
+          localStorage.removeItem('memora_user');
+          localStorage.removeItem('user');
+
           setToken(null);
           setUser(null);
         }
-        // Do not clear a valid local session for temporary 404/500/network errors.
+
+        // 404 / 500 / network error:
+        // preserve the existing local session.
       } finally {
         setIsLoading(false);
       }
@@ -62,14 +106,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await api.post('/auth/login', { email, password });
+    const res = await api.post('/auth/login', {
+      email,
+      password,
+    });
 
     if (res.data?.success && res.data?.token) {
-      localStorage.setItem('memora_token', res.data.token);
-      localStorage.setItem('token', res.data.token);
+      const newToken = res.data.token;
+      const newUser = res.data.user;
 
-      setToken(res.data.token);
-      setUser(res.data.user);
+      localStorage.setItem('memora_token', newToken);
+      localStorage.setItem('token', newToken);
+
+      if (newUser) {
+        localStorage.setItem(
+          'memora_user',
+          JSON.stringify(newUser)
+        );
+
+        localStorage.setItem(
+          'user',
+          JSON.stringify(newUser)
+        );
+      }
+
+      setToken(newToken);
+      setUser(newUser);
     }
   };
 
@@ -77,11 +139,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const res = await api.post('/auth/register', data);
 
     if (res.data?.success && res.data?.token) {
-      localStorage.setItem('memora_token', res.data.token);
-      localStorage.setItem('token', res.data.token);
+      const newToken = res.data.token;
+      const newUser = res.data.user;
 
-      setToken(res.data.token);
-      setUser(res.data.user);
+      localStorage.setItem('memora_token', newToken);
+      localStorage.setItem('token', newToken);
+
+      if (newUser) {
+        localStorage.setItem(
+          'memora_user',
+          JSON.stringify(newUser)
+        );
+
+        localStorage.setItem(
+          'user',
+          JSON.stringify(newUser)
+        );
+      }
+
+      setToken(newToken);
+      setUser(newUser);
     }
   };
 
@@ -89,17 +166,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const res = await api.post('/auth/google', data);
 
     if (res.data?.success && res.data?.token) {
-      localStorage.setItem('memora_token', res.data.token);
-      localStorage.setItem('token', res.data.token);
+      const newToken = res.data.token;
+      const newUser = res.data.user;
 
-      setToken(res.data.token);
-      setUser(res.data.user);
+      localStorage.setItem('memora_token', newToken);
+      localStorage.setItem('token', newToken);
+
+      if (newUser) {
+        localStorage.setItem(
+          'memora_user',
+          JSON.stringify(newUser)
+        );
+
+        localStorage.setItem(
+          'user',
+          JSON.stringify(newUser)
+        );
+      }
+
+      setToken(newToken);
+      setUser(newUser);
     }
   };
 
   const logout = () => {
     localStorage.removeItem('memora_token');
     localStorage.removeItem('token');
+    localStorage.removeItem('memora_user');
+    localStorage.removeItem('user');
+
     setToken(null);
     setUser(null);
   };
@@ -108,11 +203,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const res = await api.put('/auth/profile', data);
 
     if (res.data?.success) {
-      setUser(res.data.user);
+      const updatedUser = res.data.user;
+
+      setUser(updatedUser);
+
+      localStorage.setItem(
+        'memora_user',
+        JSON.stringify(updatedUser)
+      );
+
+      localStorage.setItem(
+        'user',
+        JSON.stringify(updatedUser)
+      );
     }
   };
 
-  const demoLogin = async (role: 'customer' | 'shop_owner' | 'admin') => {
+  const demoLogin = async (
+    role: 'customer' | 'shop_owner' | 'admin'
+  ) => {
     let email = 'customer@memora.com';
     let password = 'Customer@123';
 
@@ -156,3 +265,4 @@ export const useAuth = (): AuthContextType => {
 
   return context;
 };
+```
