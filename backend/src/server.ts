@@ -82,9 +82,19 @@ const startServer = async () => {
   app.use(express.urlencoded({ extended: true, limit: '30mb' }));
   app.use(morgan('dev'));
 
-  // Static uploads folder
-  const uploadsPath = path.join(process.cwd(), 'uploads');
-  app.use('/uploads', express.static(uploadsPath));
+ // Static uploads folder
+
+const uploadsPath = path.join(process.cwd(), 'uploads');
+
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  },
+  express.static(uploadsPath)
+);
 
   // API Routes
   app.use('/api/auth', authRoutes);

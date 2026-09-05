@@ -3,6 +3,7 @@ import { Camera, Image as ImageIcon, Heart, Trash2, Upload, Sparkles, X, CheckCi
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import { useToast } from '../../context/ToastContext';
+import { getImageUrl } from '../../utils/imageUrl';
 
 interface IPhotoItem {
   _id?: string;
@@ -257,7 +258,7 @@ export const MyPhotos: React.FC = () => {
                 onClick={() => setPreviewPhoto(photo)}
               >
                 <img
-                  src={photo.url}
+                  src={getImageUrl(photo.url)}
                   alt={photo.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
