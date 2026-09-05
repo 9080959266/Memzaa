@@ -1,4 +1,3 @@
-```tsx
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Layers, Camera, Clock, User } from 'lucide-react';
@@ -45,4 +44,3 @@ export const MobileNav: React.FC = () => {
     </div>
   );
 };
-```
