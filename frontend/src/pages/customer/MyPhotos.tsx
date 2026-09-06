@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Camera,
   Image as ImageIcon,
   Heart,
   Trash2,
   Upload,
   Sparkles,
   X,
-  CheckCircle2,
   Download,
   ExternalLink,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import api from '../../api/client';
+import api, { API_BASE } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { getImageUrl } from '../../utils/imageUrl';
 
@@ -82,25 +80,57 @@ export const MyPhotos: React.FC = () => {
     try {
       setIsUploading(true);
 
+      const token = localStorage.getItem('memora_token');
+
+      if (!token) {
+        error('Please login again before uploading photos.');
+        return;
+      }
+
       let uploadedCount = 0;
+      let failedCount = 0;
 
       for (const file of files) {
         if (!file.type.startsWith('image/')) {
+          failedCount += 1;
           continue;
         }
 
         const formData = new FormData();
-        formData.append('file', file);
+
+        formData.append('file', file, file.name);
         formData.append('category', 'uploaded');
 
-       const res = await api.post('/upload/single', formData);
+        const response = await fetch(`${API_BASE}/upload/single`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
 
-        if (res.data?.success) {
+        let result: {
+          success?: boolean;
+          message?: string;
+        } = {};
+
+        try {
+          result = await response.json();
+        } catch {
+          result = {
+            success: false,
+            message: 'Invalid server response.',
+          };
+        }
+
+        if (response.ok && result.success) {
           uploadedCount += 1;
         } else {
+          failedCount += 1;
+
           console.error(
             `Upload failed for ${file.name}:`,
-            res.data?.message
+            result.message
           );
         }
       }
@@ -113,16 +143,25 @@ export const MyPhotos: React.FC = () => {
         );
 
         await fetchPhotos();
-      } else {
-        error('No photos were uploaded.');
+      }
+
+      if (failedCount > 0) {
+        error(
+          `${failedCount} photo${
+            failedCount > 1 ? 's' : ''
+          } could not be uploaded.`
+        );
+      }
+
+      if (uploadedCount === 0 && failedCount === 0) {
+        error('No valid image files selected.');
       }
     } catch (err: any) {
       console.error('Photo upload error:', err);
 
       error(
-        err?.response?.data?.message ||
-          err?.message ||
-          'Failed to upload photos.'
+        err?.message ||
+          'Failed to upload photos. Please try again.'
       );
     } finally {
       setIsUploading(false);
@@ -227,7 +266,9 @@ export const MyPhotos: React.FC = () => {
       let downloadUrl = photo.url;
 
       if (photo._id) {
-        const res = await api.get(`/photos/${photo._id}/download`);
+        const res = await api.get(
+          `/photos/${photo._id}/download`
+        );
 
         if (res.data?.success && res.data?.downloadUrl) {
           downloadUrl = res.data.downloadUrl;
@@ -235,10 +276,12 @@ export const MyPhotos: React.FC = () => {
       }
 
       const anchor = document.createElement('a');
+
       anchor.href = downloadUrl;
       anchor.target = '_blank';
       anchor.rel = 'noreferrer';
       anchor.download = photo.name;
+
       document.body.appendChild(anchor);
       anchor.click();
       document.body.removeChild(anchor);
@@ -305,7 +348,7 @@ export const MyPhotos: React.FC = () => {
           <input
             type="file"
             multiple
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/heic"
             className="hidden"
             disabled={isUploading}
             onChange={handleFileUpload}
@@ -484,7 +527,9 @@ export const MyPhotos: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => toggleFavourite(previewPhoto)}
+                  onClick={() =>
+                    toggleFavourite(previewPhoto)
+                  }
                   className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition ${
                     previewPhoto.isFavourite
                       ? 'bg-rose-500 text-white'
@@ -508,7 +553,9 @@ export const MyPhotos: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => handleDownload(previewPhoto)}
+                  onClick={() =>
+                    handleDownload(previewPhoto)
+                  }
                   className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition"
                 >
                   <Download className="w-4 h-4" />
