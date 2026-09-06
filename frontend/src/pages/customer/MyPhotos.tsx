@@ -93,7 +93,7 @@ export const MyPhotos: React.FC = () => {
         formData.append('file', file);
         formData.append('category', 'uploaded');
 
-        const res = await api.post('/upload/single', formData);
+       const res = await api.post('/upload/single', formData);
 
         if (res.data?.success) {
           uploadedCount += 1;
