@@ -20,6 +20,7 @@ import { OrderDetail } from '../pages/customer/OrderDetail';
 import { Bookings } from '../pages/customer/Bookings';
 import { Proofs } from '../pages/customer/Proofs';
 import { Invoices } from '../pages/customer/Invoices';
+import { PaymentHistory } from '../pages/customer/PaymentHistory';
 import { Wishlist } from '../pages/customer/Wishlist';
 import { Profile } from '../pages/customer/Profile';
 import { MyPhotos } from '../pages/customer/MyPhotos';
@@ -165,6 +166,7 @@ export const AppRoutes: React.FC = () => {
 
       {/* Standalone Printable Invoice */}
       <Route path="/invoices/:id" element={<Invoices />} />
+        <Route path="/payments" element={<PaymentHistory />} />
 
       {/* Shop Owner Seller Portal */}
       <Route
