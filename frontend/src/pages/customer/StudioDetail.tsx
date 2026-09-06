@@ -407,6 +407,28 @@ export const StudioDetail: React.FC = () => {
               </div>
             </div>
 
+            {user ? (
+              <ReviewForm
+                studioId={studio._id}
+                onReviewAdded={(newReview) => {
+                  setReviews((prev) => [newReview, ...prev]);
+                }}
+              />
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-center">
+                <p className="text-xs font-semibold text-slate-700">
+                  Please login to write a review.
+                </p>
+
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 mt-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl transition"
+                >
+                  Login to Review
+                </Link>
+              </div>
+            )}
+
             <div className="space-y-4">
               {reviews.map((rev) => (
                 <div key={rev._id} className="bg-white rounded-3xl border border-slate-200/80 p-6 space-y-3">
