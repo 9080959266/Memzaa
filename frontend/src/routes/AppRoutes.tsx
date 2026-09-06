@@ -1,4 +1,5 @@
 import React from 'react';
+import { Notifications } from '../pages/customer/Notifications';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { CustomerLayout } from '../components/common/CustomerLayout';
 import { ShopOwnerLayout } from '../components/shopOwner/ShopOwnerLayout';
@@ -218,7 +219,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="deliveries" element={<AdminDeliveries />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="settings" element={<AdminSettings />} />
-      </Route>
+
+      </Route><Route path="/notifications" element={<Notifications />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
