@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Heart, Trash2, Upload, Sparkles, X, CheckCircle2, Download, ExternalLink } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import {
+  Camera,
+  Image as ImageIcon,
+  Heart,
+  Trash2,
+  Upload,
+  Sparkles,
+  X,
+  CheckCircle2,
+  Download,
+  ExternalLink,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import { useToast } from '../../context/ToastContext';
@@ -11,68 +22,45 @@ interface IPhotoItem {
   url: string;
   name: string;
   isFavourite?: boolean;
-  category: 'uploaded' | 'selected' | 'used_in_order' | 'proof' | 'edited' | 'raw';
+  category:
+    | 'uploaded'
+    | 'selected'
+    | 'used_in_order'
+    | 'proof'
+    | 'edited'
+    | 'raw';
   size?: number;
   createdAt?: string;
 }
 
 export const MyPhotos: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'all' | 'favourites' | 'orders'>('all');
+  const [activeTab, setActiveTab] = useState<
+    'all' | 'favourites' | 'orders'
+  >('all');
+
   const [photos, setPhotos] = useState<IPhotoItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [previewPhoto, setPreviewPhoto] = useState<IPhotoItem | null>(null);
+  const [previewPhoto, setPreviewPhoto] =
+    useState<IPhotoItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const { success, error, info } = useToast();
+
+  const { success, error } = useToast();
 
   const fetchPhotos = async () => {
     try {
       setIsLoading(true);
+
       const res = await api.get('/photos');
-      if (res.data.success && res.data.photos?.length > 0) {
-        setPhotos(res.data.photos);
+
+      if (res.data?.success) {
+        setPhotos(res.data.photos || []);
       } else {
-        // High quality fallback samples
-        setPhotos([
-          {
-            id: 'p1',
-            url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
-            name: 'Royal Wedding Portrait 01.jpg',
-            isFavourite: true,
-            category: 'used_in_order',
-            size: 14500000,
-            createdAt: '2026-09-01',
-          },
-          {
-            id: 'p2',
-            url: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=800&q=80',
-            name: 'Pre-Wedding Sunset Candid.jpg',
-            isFavourite: true,
-            category: 'uploaded',
-            size: 18200000,
-            createdAt: '2026-09-01',
-          },
-          {
-            id: 'p3',
-            url: 'https://images.unsplash.com/photo-1606800052052-a08af7148866?auto=format&fit=crop&w=800&q=80',
-            name: 'Baby Laughing Candid.jpg',
-            isFavourite: false,
-            category: 'selected',
-            size: 9800000,
-            createdAt: '2026-08-28',
-          },
-          {
-            id: 'p4',
-            url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80',
-            name: 'Family Muhurtham Stage.jpg',
-            isFavourite: false,
-            category: 'used_in_order',
-            size: 22000000,
-            createdAt: '2026-08-25',
-          },
-        ]);
+        setPhotos([]);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error('Fetch photos error:', err);
+      setPhotos([]);
+      error('Failed to load your photos.');
     } finally {
       setIsLoading(false);
     }
@@ -82,105 +70,210 @@ export const MyPhotos: React.FC = () => {
     fetchPhotos();
   }, []);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    setIsUploading(true);
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = Array.from(e.target.files || []);
+
+    if (files.length === 0) {
+      return;
+    }
 
     try {
-      // Direct high-res upload simulation with realistic object URL and persistence
-      const tempUrl = URL.createObjectURL(file);
-      const res = await api.post('/photos', {
-        name: file.name,
-        url: tempUrl,
-        size: file.size,
-        mimeType: file.type || 'image/jpeg',
-        category: 'uploaded',
-        publicId: `memora_photos/user_${Date.now()}`
-      });
+      setIsUploading(true);
 
-      if (res.data.success) {
-        success(`"${file.name}" saved to your cloud photo vault!`);
-        fetchPhotos();
-      } else {
-        // Fallback local append
-        const newPhoto: IPhotoItem = {
-          id: `up_${Date.now()}`,
-          name: file.name,
-          url: tempUrl,
-          category: 'uploaded',
-          isFavourite: false,
-          size: file.size,
-          createdAt: new Date().toISOString()
-        };
-        setPhotos([newPhoto, ...photos]);
-        success(`"${file.name}" uploaded successfully!`);
+      let uploadedCount = 0;
+
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) {
+          continue;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', 'uploaded');
+
+        const res = await api.post('/upload/single', formData);
+
+        if (res.data?.success) {
+          uploadedCount += 1;
+        } else {
+          console.error(
+            `Upload failed for ${file.name}:`,
+            res.data?.message
+          );
+        }
       }
-    } catch (err) {
-      const newPhoto: IPhotoItem = {
-        id: `up_${Date.now()}`,
-        name: file.name,
-        url: URL.createObjectURL(file),
-        category: 'uploaded',
-        isFavourite: false,
-        size: file.size,
-        createdAt: new Date().toISOString()
-      };
-      setPhotos([newPhoto, ...photos]);
-      info(`Photo stored in browser session library`);
+
+      if (uploadedCount > 0) {
+        success(
+          `${uploadedCount} photo${
+            uploadedCount > 1 ? 's' : ''
+          } uploaded successfully to your cloud photo vault.`
+        );
+
+        await fetchPhotos();
+      } else {
+        error('No photos were uploaded.');
+      }
+    } catch (err: any) {
+      console.error('Photo upload error:', err);
+
+      error(
+        err?.response?.data?.message ||
+          err?.message ||
+          'Failed to upload photos.'
+      );
     } finally {
       setIsUploading(false);
+      e.target.value = '';
     }
   };
 
-  const toggleFavourite = async (p: IPhotoItem) => {
-    const photoId = p._id || p.id;
+  const toggleFavourite = async (photo: IPhotoItem) => {
+    const photoId = photo._id || photo.id;
+
+    if (!photoId) {
+      return;
+    }
+
     try {
-      if (p._id) {
-        await api.put(`/photos/${p._id}/favourite`);
+      if (photo._id) {
+        await api.put(`/photos/${photo._id}/favourite`);
       }
-      setPhotos(photos.map((item) => (
-        (item._id === photoId || item.id === photoId)
-          ? { ...item, isFavourite: !item.isFavourite }
-          : item
-      )));
-      if (previewPhoto && (previewPhoto._id === photoId || previewPhoto.id === photoId)) {
-        setPreviewPhoto({ ...previewPhoto, isFavourite: !previewPhoto.isFavourite });
-      }
-      success(p.isFavourite ? 'Removed from favourites' : 'Added to favourites!');
-    } catch (e) {
-      setPhotos(photos.map((item) => (
-        (item._id === photoId || item.id === photoId)
-          ? { ...item, isFavourite: !item.isFavourite }
-          : item
-      )));
+
+      setPhotos((prev) =>
+        prev.map((item) =>
+          (item._id || item.id) === photoId
+            ? {
+                ...item,
+                isFavourite: !item.isFavourite,
+              }
+            : item
+        )
+      );
+
+      setPreviewPhoto((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        if ((prev._id || prev.id) !== photoId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          isFavourite: !prev.isFavourite,
+        };
+      });
+
+      success(
+        photo.isFavourite
+          ? 'Removed from favourites.'
+          : 'Added to favourites.'
+      );
+    } catch (err: any) {
+      console.error('Favourite update error:', err);
+
+      error(
+        err?.response?.data?.message ||
+          'Failed to update favourite status.'
+      );
     }
   };
 
-  const deletePhoto = async (p: IPhotoItem) => {
-    if (!confirm(`Delete "${p.name}" from your cloud vault?`)) return;
-    const photoId = p._id || p.id;
+  const deletePhoto = async (photo: IPhotoItem) => {
+    const photoId = photo._id || photo.id;
+
+    if (!photoId) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete "${photo.name}" from your cloud photo vault?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
-      if (p._id) {
-        await api.delete(`/photos/${p._id}`);
+      if (photo._id) {
+        await api.delete(`/photos/${photo._id}`);
       }
-      setPhotos(photos.filter((item) => item._id !== photoId && item.id !== photoId));
+
+      setPhotos((prev) =>
+        prev.filter(
+          (item) => (item._id || item.id) !== photoId
+        )
+      );
+
       setPreviewPhoto(null);
-      success('Photo removed from vault');
-    } catch (e) {
-      setPhotos(photos.filter((item) => item._id !== photoId && item.id !== photoId));
-      setPreviewPhoto(null);
+
+      success('Photo removed from your cloud vault.');
+    } catch (err: any) {
+      console.error('Delete photo error:', err);
+
+      error(
+        err?.response?.data?.message ||
+          'Failed to delete photo.'
+      );
     }
   };
 
-  const filteredPhotos = photos.filter((p) => {
-    if (activeTab === 'favourites') return p.isFavourite;
-    if (activeTab === 'orders') return p.category === 'used_in_order';
+  const handleDownload = async (photo: IPhotoItem) => {
+    try {
+      let downloadUrl = photo.url;
+
+      if (photo._id) {
+        const res = await api.get(`/photos/${photo._id}/download`);
+
+        if (res.data?.success && res.data?.downloadUrl) {
+          downloadUrl = res.data.downloadUrl;
+        }
+      }
+
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.target = '_blank';
+      anchor.rel = 'noreferrer';
+      anchor.download = photo.name;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    } catch (err: any) {
+      console.error('Download error:', err);
+
+      error(
+        err?.response?.data?.message ||
+          'Failed to generate download link.'
+      );
+    }
+  };
+
+  const filteredPhotos = photos.filter((photo) => {
+    if (activeTab === 'favourites') {
+      return photo.isFavourite;
+    }
+
+    if (activeTab === 'orders') {
+      return photo.category === 'used_in_order';
+    }
+
     return true;
   });
 
+  const favouriteCount = photos.filter(
+    (photo) => photo.isFavourite
+  ).length;
+
+  const orderPhotoCount = photos.filter(
+    (photo) => photo.category === 'used_in_order'
+  ).length;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
@@ -188,16 +281,27 @@ export const MyPhotos: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5" />
             CUSTOMER CLOUD PHOTO VAULT
           </div>
-          <h1 className="text-3xl font-black text-slate-900 font-serif">Personal Photo Library</h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">
-            Store, preview, and organize your favorite high-res photos to customize solid wood frames, canvas prints and layflat albums.
+
+          <h1 className="text-3xl font-black text-slate-900 font-serif">
+            Personal Photo Library
+          </h1>
+
+          <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-3xl">
+            Store, preview, and organize your high-resolution photos
+            for frames, canvas prints and albums.
           </p>
         </div>
 
-        {/* Upload Button */}
+        {/* Upload */}
         <label className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold px-6 py-3 rounded-2xl cursor-pointer shadow-lg shadow-amber-500/20 transition-all text-xs">
           <Upload className="w-4 h-4" />
-          <span>{isUploading ? 'Uploading to Cloud...' : 'Upload High-Res Photos'}</span>
+
+          <span>
+            {isUploading
+              ? 'Uploading to Cloud...'
+              : 'Upload High-Res Photos'}
+          </span>
+
           <input
             type="file"
             multiple
@@ -210,40 +314,66 @@ export const MyPhotos: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200">
-        {[
-          { id: 'all', label: `All Photos (${photos.length})` },
-          { id: 'favourites', label: `Favourites (${photos.filter((p) => p.isFavourite).length})` },
-          { id: 'orders', label: `Used in Keepsakes (${photos.filter((p) => p.category === 'used_in_order').length})` },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-3 font-bold text-xs border-b-2 transition ${
-              activeTab === tab.id
-                ? 'border-amber-500 text-amber-600'
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveTab('all')}
+          className={`px-4 py-3 font-bold text-xs border-b-2 transition whitespace-nowrap ${
+            activeTab === 'all'
+              ? 'border-amber-500 text-amber-600'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          All Photos ({photos.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('favourites')}
+          className={`px-4 py-3 font-bold text-xs border-b-2 transition whitespace-nowrap ${
+            activeTab === 'favourites'
+              ? 'border-amber-500 text-amber-600'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          Favourites ({favouriteCount})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('orders')}
+          className={`px-4 py-3 font-bold text-xs border-b-2 transition whitespace-nowrap ${
+            activeTab === 'orders'
+              ? 'border-amber-500 text-amber-600'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          Used in Keepsakes ({orderPhotoCount})
+        </button>
       </div>
 
       {/* Photo Grid */}
       {isLoading ? (
         <div className="text-center py-24">
           <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-xs text-slate-500 font-semibold">Loading your cloud photo vault...</p>
+
+          <p className="text-xs text-slate-500 font-semibold">
+            Loading your cloud photo vault...
+          </p>
         </div>
       ) : filteredPhotos.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 p-8">
           <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-4">
             <ImageIcon className="w-8 h-8" />
           </div>
-          <h3 className="text-base font-bold text-slate-900">No photos in this section</h3>
+
+          <h3 className="text-base font-bold text-slate-900">
+            No photos in this section
+          </h3>
+
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-            Upload your wedding, baby or vacation photos to customize physical frames or albums.
+            Upload your photos to store them securely and use them
+            for MEMORA products and photoshoots.
           </p>
         </div>
       ) : (
@@ -251,7 +381,7 @@ export const MyPhotos: React.FC = () => {
           {filteredPhotos.map((photo) => (
             <div
               key={photo._id || photo.id}
-              className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+              className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col"
             >
               <div
                 className="relative aspect-square overflow-hidden bg-slate-100 cursor-pointer"
@@ -262,9 +392,11 @@ export const MyPhotos: React.FC = () => {
                   alt={photo.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
+
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleFavourite(photo);
@@ -276,18 +408,35 @@ export const MyPhotos: React.FC = () => {
                   }`}
                   aria-label="Toggle favourite"
                 >
-                  <Heart className={`w-3.5 h-3.5 ${photo.isFavourite ? 'fill-current' : ''}`} />
+                  <Heart
+                    className={`w-3.5 h-3.5 ${
+                      photo.isFavourite ? 'fill-current' : ''
+                    }`}
+                  />
                 </button>
               </div>
 
               <div className="p-3">
-                <p className="text-xs font-bold text-slate-900 truncate">{photo.name}</p>
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {photo.name}
+                </p>
+
                 <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
-                  <span>{photo.size ? `${(photo.size / (1024 * 1024)).toFixed(1)} MB` : 'High-Res'}</span>
+                  <span>
+                    {photo.size
+                      ? `${(
+                          photo.size /
+                          (1024 * 1024)
+                        ).toFixed(1)} MB`
+                      : 'High-Res'}
+                  </span>
+
                   <button
+                    type="button"
                     onClick={() => deletePhoto(photo)}
                     className="text-slate-400 hover:text-rose-500 transition"
                     title="Delete Photo"
+                    aria-label="Delete Photo"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -300,13 +449,24 @@ export const MyPhotos: React.FC = () => {
 
       {/* Preview Modal */}
       {previewPhoto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md"
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <div
+            className="relative bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 border-b border-slate-800 text-white">
-              <h3 className="text-xs sm:text-sm font-bold truncate pr-4">{previewPhoto.name}</h3>
+              <h3 className="text-xs sm:text-sm font-bold truncate pr-4">
+                {previewPhoto.name}
+              </h3>
+
               <button
+                type="button"
                 onClick={() => setPreviewPhoto(null)}
                 className="p-1.5 text-slate-400 hover:text-white rounded-lg"
+                aria-label="Close preview"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -314,15 +474,16 @@ export const MyPhotos: React.FC = () => {
 
             <div className="max-h-[65vh] overflow-hidden flex items-center justify-center bg-black">
               <img
-                src={previewPhoto.url}
+                src={getImageUrl(previewPhoto.url)}
                 alt={previewPhoto.name}
                 className="max-h-[65vh] w-auto object-contain"
               />
             </div>
 
-            <div className="p-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
+            <div className="p-4 bg-slate-900 border-t border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => toggleFavourite(previewPhoto)}
                   className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition ${
                     previewPhoto.isFavourite
@@ -330,24 +491,35 @@ export const MyPhotos: React.FC = () => {
                       : 'bg-slate-800 text-slate-300 hover:text-white'
                   }`}
                 >
-                  <Heart className={`w-4 h-4 ${previewPhoto.isFavourite ? 'fill-current' : ''}`} />
-                  <span>{previewPhoto.isFavourite ? 'Favourited' : 'Add to Favourites'}</span>
+                  <Heart
+                    className={`w-4 h-4 ${
+                      previewPhoto.isFavourite
+                        ? 'fill-current'
+                        : ''
+                    }`}
+                  />
+
+                  <span>
+                    {previewPhoto.isFavourite
+                      ? 'Favourited'
+                      : 'Add to Favourites'}
+                  </span>
                 </button>
-                <a
-                  href={previewPhoto.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  download={previewPhoto.name}
+
+                <button
+                  type="button"
+                  onClick={() => handleDownload(previewPhoto)}
                   className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition"
                 >
                   <Download className="w-4 h-4" />
                   <span>Download</span>
-                </a>
+                </button>
               </div>
 
               <Link
                 to="/products"
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition shadow-md flex items-center gap-1.5"
+                onClick={() => setPreviewPhoto(null)}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition shadow-md flex items-center justify-center gap-1.5"
               >
                 <span>Print in Teak Frame</span>
                 <ExternalLink className="w-3.5 h-3.5" />
